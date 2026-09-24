@@ -1,5 +1,8 @@
 export type ParametriStackHome = {
     Home: undefined;
+    DettaglioArtista: { artistaId: number };
+    DettaglioBrano: { branoId: number };
+    DettaglioAlbum: { albumId: number };
 };
 
 export type ParametriStackEventi = {
