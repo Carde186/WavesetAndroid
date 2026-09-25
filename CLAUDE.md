@@ -108,6 +108,62 @@ pipeline di stile di NativeWind (`react-native-css-interop` sovrascrive il
 interno alle vector-icons) — Lucide, essendo SVG e non Text-based, evita
 strutturalmente il problema.
 
+### Logo — blob + wordmark
+
+Ispirato a un riferimento video (blob organico animato, sfondo nero,
+wordmark sovrapposto) ma **non incorporato come file video** — ricostruito
+nativamente con `react-native-reanimated` + `react-native-svg` (già nel
+progetto, nessuna dipendenza nuova tipo `react-native-video`).
+
+Palette del blob — gradiente entro la famiglia viola/magenta, NON i colori
+multi-tonalità (arancione/blu/rosa) del riferimento originale, per restare
+coerente con l'accento unico dell'app:
+- `#4408e7` — tono di base/ombra (il più scuro, poca luminosità su sfondo
+  quasi nero: usarlo in profondità nel gradiente, non come punto più acceso)
+- `#6a34ea` — tono intermedio, molto vicino all'accento primario `#8B5CF6`
+  già in uso nel resto dell'app
+- `#ad04fb` — punto più vivido/chiaro del gradiente
+- `#8c008f` — accento profondo, uso sfumato
+
+Animazione: **morphing organico del contorno** (come nel video di
+riferimento), non solo scala/opacità — su **entrambe** le versioni (header
+e intro), non solo sull'intro. Forma con **lobi/punte pronunciati**, non
+un'ovale che respira appena, ma **senza risolversi in una forma geometrica
+riconoscibile** (triangolo, esagono, stella regolare) — questo richiede
+raggio indipendente per ciascun punto (niente pattern che si ripete tra un
+punto e l'altro, es. corto-lungo-corto-lungo) E una piccola variazione
+anche nell'angolo di ciascun punto (non perfettamente equidistanti): è la
+combinazione delle due a rompere la simmetria, una sola delle due non
+basta. Resta su curve (Bezier via Catmull-Rom), niente vertici/segmenti
+dritti veri, quella è un'altra direzione (poligonale) scartata.
+
+Durata: **minimo 8 secondi** per un ciclo completo prima di ricominciare.
+Il ritorno alla forma di partenza a fine ciclo deve essere fluido, mai uno
+scatto — la forma di partenza (A) deve essere un valore fisso e identico
+a ogni ciclo (non rigenerato/ricalcolato ogni volta: se A cambia
+leggermente da un ciclo all'altro, il punto di chiusura non combacia con
+quello di partenza del ciclo successivo ed è quello a produrre lo scatto).
+
+Tecnica: più forme-chiave con la stessa topologia del `<Path>`,
+interpolazione animata tra le chiavi in loop continuo. Nessuna dipendenza
+nuova.
+
+**Wordmark**: "Waveset" va **sovrapposto** al blob, non impilato sopra nel
+layout — stesso centro X/Y del blob, posizionamento assoluto, il testo in
+un layer/z-index sopra la forma (come un titolo scritto su un'immagine di
+sfondo, non un elemento che sta "prima" del blob nell'ordine verticale).
+
+**Un solo componente**, riusato in due contesti, dimensioni diverse ma
+**stesso comportamento di animazione** (morphing) su entrambe:
+1. Top bar — versione piccola ma leggibile (non minuscola: deve reggere il
+   confronto visivo con le icone della tab bar sotto), sostituisce il testo
+   semplice "Waveset"
+2. Schermata di intro — versione grande, mostrata dopo il caricamento
+   dell'app e prima della Home (schermata React vera e propria, NON lo
+   splash screen nativo del sistema operativo, che deve restare
+   un'immagine statica — vincolo di piattaforma, non aggirabile)
+
+
 
 
 ```
@@ -141,6 +197,14 @@ npm interno, nessun tentativo di condivisione a livello di file.
 - Indentazione a 4 spazi
 - Codice semplice e leggibile, evitare astrazioni non necessarie
 - Messaggi di commit in italiano
+- Dipendenze sempre all'ultima versione stabile disponibile al momento
+  dell'installazione — non fissare versioni più vecchie senza un motivo
+  esplicito. Ma le versioni già installate NON vanno aggiornate in blocco
+  "tanto per aggiornare": un audit fatto una libreria alla volta (build +
+  test dopo ciascuna, non un bump massivo tutto insieme) evita di rompere
+  qualcosa che oggi funziona — vale soprattutto per le librerie con codice
+  nativo (Reanimated, react-native-svg), dove un salto di versione major
+  può richiedere una migrazione vera, non solo un aggiornamento di numero.
 
 ## Modello dati
 
@@ -314,6 +378,10 @@ Spotify, autenticazione con gating per utenti anonimi, logout.
   perché.
 - **Commit**: NON eseguire `git commit` né `git push`. Dimmi quale comando
   useresti e con quale messaggio, poi li scrivo ed eseguo io da terminale.
+  Un commit per lavoro logico — se in una sessione hai completato più cose
+  distinte (es. un fix + una migrazione di stile + una feature), proponi
+  commit separati, anche se nessuno dei due è stato ancora eseguito. Non
+  accumulare più step in un commit solo per comodità.
 
 ## README — requisiti
 
@@ -360,6 +428,7 @@ procede, spuntando cosa è fatto:
 - [ ] Migrazione stile: React Native Paper → NativeWind + identità visiva
       (vedi sezione dedicata) — da fare ora, prima di proseguire, sulle
       schermate già scritte
+- [ ] Logo blob+wordmark (componente unico, top bar + schermata di intro)
 - [ ] Autenticazione (JWT contro il backend, ruoli USER/ADMIN — includere
       test di isolamento tra due utenti reali, non solo verifica login)
 - [ ] Ricerca

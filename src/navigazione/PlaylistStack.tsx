@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import LogoHeaderLeft from './LogoHeaderLeft';
 import DettaglioAlbumSchermata from '../schermate/DettaglioAlbumSchermata';
 import DettaglioArtistaSchermata from '../schermate/DettaglioArtistaSchermata';
 import DettaglioBranoSchermata from '../schermate/DettaglioBranoSchermata';
@@ -15,7 +16,10 @@ function PlaylistStack() {
             <Stack.Screen
                 name="LeMiePlaylist"
                 component={LeMiePlaylistSchermata}
-                options={{ title: 'Le mie playlist' }}
+                options={{
+                    title: 'Le mie playlist',
+                    headerLeft: LogoHeaderLeft,
+                }}
             />
             <Stack.Screen
                 name="DettaglioPlaylist"

@@ -7,6 +7,7 @@ import HomeStack from './HomeStack';
 import PlaylistStack from './PlaylistStack';
 import ProfiloStack from './ProfiloStack';
 import type { ParametriTab } from './tipi';
+import { TOKEN } from '../tema/token';
 
 const Tab = createBottomTabNavigator<ParametriTab>();
 
@@ -30,6 +31,15 @@ function TabNavigator() {
             screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarIcon: creaTabBarIcon(route.name as keyof ParametriTab),
+                tabBarActiveTintColor: TOKEN.accento,
+                tabBarInactiveTintColor: TOKEN.testoSecondario,
+                tabBarStyle: {
+                    backgroundColor: TOKEN.superficie,
+                    borderTopColor: TOKEN.bordo,
+                    borderTopWidth: 1,
+                    elevation: 0,
+                    shadowOpacity: 0,
+                },
             })}
         >
             <Tab.Screen

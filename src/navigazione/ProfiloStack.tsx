@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import LogoHeaderLeft from './LogoHeaderLeft';
 import ProfiloSchermata from '../schermate/ProfiloSchermata';
 import type { ParametriStackProfilo } from './tipi';
 
@@ -11,7 +12,7 @@ function ProfiloStack() {
             <Stack.Screen
                 name="Profilo"
                 component={ProfiloSchermata}
-                options={{ title: 'Profilo' }}
+                options={{ title: 'Profilo', headerLeft: LogoHeaderLeft }}
             />
         </Stack.Navigator>
     );

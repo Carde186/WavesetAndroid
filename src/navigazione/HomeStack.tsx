@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import LogoHeaderLeft from './LogoHeaderLeft';
 import DettaglioAlbumSchermata from '../schermate/DettaglioAlbumSchermata';
 import DettaglioArtistaSchermata from '../schermate/DettaglioArtistaSchermata';
 import DettaglioBranoSchermata from '../schermate/DettaglioBranoSchermata';
@@ -14,7 +15,7 @@ function HomeStack() {
             <Stack.Screen
                 name="Home"
                 component={HomeSchermata}
-                options={{ title: 'Home' }}
+                options={{ title: 'Home', headerLeft: LogoHeaderLeft }}
             />
             <Stack.Screen
                 name="DettaglioArtista"

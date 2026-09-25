@@ -30,3 +30,8 @@ export type ParametriTab = {
     PlaylistStack: undefined;
     ProfiloStack: undefined;
 };
+
+export type ParametriStackRadice = {
+    Intro: undefined;
+    Tabs: undefined;
+};
