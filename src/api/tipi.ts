@@ -21,6 +21,15 @@ export type AlbumSintetico = {
     id: number;
     titolo: string;
     data_pubblicazione: string | null;
+    copertina_url: string | null;
+};
+
+export type EventoSintetico = {
+    id: number;
+    titolo: string;
+    data_evento: string;
+    luogo: string | null;
+    citta: string | null;
 };
 
 export type ArtistaDettaglio = {
@@ -31,6 +40,7 @@ export type ArtistaDettaglio = {
     generi: Genere[];
     brani: BranoSintetico[];
     album: AlbumSintetico[];
+    eventi: EventoSintetico[];
 };
 
 export type ArtistaRiferimento = {

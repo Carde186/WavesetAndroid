@@ -10,6 +10,7 @@ import {
 import CartaNovita from '../componenti/CartaNovita';
 import Pillola from '../componenti/Pillola';
 import RigaElenco from '../componenti/RigaElenco';
+import TitoloSezione from '../componenti/TitoloSezione';
 import type { ArtistaSintetico, BranoDettaglio, Genere } from '../api/tipi';
 import type { ParametriStackHome } from '../navigazione/tipi';
 
@@ -58,9 +59,7 @@ function HomeSchermata({ navigation }: Props) {
         <ScrollView className="flex-1 bg-sfondo">
             {braniRecenti.length > 0 && (
                 <>
-                    <Text className="mx-4 mt-4 text-xl font-semibold text-testo-primario">
-                        Novità
-                    </Text>
+                    <TitoloSezione>Novità</TitoloSezione>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -86,9 +85,7 @@ function HomeSchermata({ navigation }: Props) {
                 </>
             )}
 
-            <Text className="mx-4 mt-4 text-xl font-semibold text-testo-primario">
-                Esplora per genere
-            </Text>
+            <TitoloSezione>Esplora per genere</TitoloSezione>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View className="flex-row gap-2 px-4 py-3">

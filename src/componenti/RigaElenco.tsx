@@ -24,6 +24,7 @@ function RigaElenco({
     return (
         <Pressable
             onPress={onPress}
+            disabled={!onPress}
             className="flex-row items-center justify-between border-b border-bordo px-4 py-3 active:opacity-70"
         >
             <View className="flex-1 flex-row items-center">

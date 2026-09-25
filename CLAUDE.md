@@ -425,10 +425,9 @@ procede, spuntando cosa è fatto:
 - [x] Scaffolding progetto + navigazione base
 - [x] Schermate di catalogo (Home, Dettaglio artista/brano/album)
 - [x] Playlist (multiple per utente, non una sola di default)
-- [ ] Migrazione stile: React Native Paper → NativeWind + identità visiva
-      (vedi sezione dedicata) — da fare ora, prima di proseguire, sulle
-      schermate già scritte
-- [ ] Logo blob+wordmark (componente unico, top bar + schermata di intro)
+- [x] Migrazione stile: React Native Paper → NativeWind + identità visiva
+      (vedi sezione dedicata) — completata su Home, header, tab bar
+- [x] Logo blob+wordmark (componente unico, top bar + schermata di intro)
 - [ ] Autenticazione (JWT contro il backend, ruoli USER/ADMIN — includere
       test di isolamento tra due utenti reali, non solo verifica login)
 - [ ] Ricerca

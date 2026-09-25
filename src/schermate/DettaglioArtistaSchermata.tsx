@@ -1,47 +1,33 @@
 import { useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
-import {
-    ActivityIndicator,
-    Button,
-    IconButton,
-    List,
-    Snackbar,
-    Text,
-    useTheme,
-} from 'react-native-paper';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ExternalLink } from 'lucide-react-native';
+import { ExternalLink, UserPlus } from 'lucide-react-native';
 
-import { creaIconaPaper } from '../componenti/iconaPaper';
 import { recuperaArtista } from '../api/catalogo';
-import type { ArtistaDettaglio } from '../api/tipi';
+import type { ArtistaDettaglio, BranoSintetico } from '../api/tipi';
+import Avviso from '../componenti/Avviso';
+import Bottone from '../componenti/Bottone';
+import BottoneIcona from '../componenti/BottoneIcona';
+import IntestazioneDettaglio from '../componenti/IntestazioneDettaglio';
+import RigaElenco from '../componenti/RigaElenco';
+import StatoSchermata from '../componenti/StatoSchermata';
+import TitoloSezione from '../componenti/TitoloSezione';
 import type { ParametriCatalogo } from '../navigazione/tipi';
+import { annoDa, formattaData } from '../utilita/data';
 
 type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioArtista'>;
 
-const iconaEsterna = creaIconaPaper(ExternalLink);
-
-function creaBottoneSpotify(url: string) {
-    return ({ color }: { color: string }) => (
-        <IconButton
-            icon={iconaEsterna}
-            iconColor={color}
-            onPress={() => Linking.openURL(url)}
-        />
-    );
-}
-
 function DettaglioArtistaSchermata({ route, navigation }: Props) {
-    const tema = useTheme();
     const { artistaId } = route.params;
 
     const [artista, setArtista] = useState<ArtistaDettaglio | null>(null);
     const [inCaricamento, setInCaricamento] = useState(true);
     const [errore, setErrore] = useState<string | null>(null);
-    const [avvisoVisibile, setAvvisoVisibile] = useState(false);
+    const [messaggioAvviso, setMessaggioAvviso] = useState<string | null>(null);
 
     useEffect(() => {
         setInCaricamento(true);
+        setErrore(null);
 
         recuperaArtista(artistaId)
             .then(setArtista)
@@ -50,128 +36,147 @@ function DettaglioArtistaSchermata({ route, navigation }: Props) {
     }, [artistaId]);
 
     if (inCaricamento) {
-        return (
-            <View
-                style={[
-                    stili.contenitoreErrore,
-                    { backgroundColor: tema.colors.background },
-                ]}
-            >
-                <ActivityIndicator />
-            </View>
-        );
+        return <StatoSchermata tipo="caricamento" />;
     }
 
     if (errore || !artista) {
         return (
-            <View
-                style={[
-                    stili.contenitoreErrore,
-                    { backgroundColor: tema.colors.background },
-                ]}
-            >
-                <Text>{errore ?? 'Artista non trovato'}</Text>
-            </View>
+            <StatoSchermata
+                tipo="errore"
+                messaggio={errore ?? 'Artista non trovato'}
+            />
         );
     }
 
+    // Un brano non ha un'immagine propria: eredita la copertina del suo
+    // album, e se non ha album (o l'album non ha copertina) l'immagine
+    // dell'artista (CLAUDE.md, "Song — immagine"). Il risultato è sempre
+    // string | null, mai undefined: null = slot con placeholder.
+    const immagineArtista = artista.immagine_url;
+    const copertinaPerAlbum = new Map(
+        artista.album.map(album => [album.id, album.copertina_url]),
+    );
+
+    function immagineDelBrano(brano: BranoSintetico): string | null {
+        const copertina = brano.album_id
+            ? copertinaPerAlbum.get(brano.album_id)
+            : null;
+
+        return copertina ?? immagineArtista;
+    }
+
     return (
-        <ScrollView
-            style={[
-                stili.contenitore,
-                { backgroundColor: tema.colors.background },
-            ]}
-        >
-            <Text variant="headlineMedium" style={stili.titolo}>
-                {artista.nome}
-            </Text>
+        <View className="flex-1 bg-sfondo">
+            <ScrollView contentContainerClassName="pb-24">
+                <IntestazioneDettaglio
+                    immagineUrl={artista.immagine_url}
+                    titolo={artista.nome}
+                    righe={
+                        artista.generi.length > 0
+                            ? [artista.generi.map(g => g.nome).join(' · ')]
+                            : []
+                    }
+                />
 
-            {artista.bio && <Text style={stili.bio}>{artista.bio}</Text>}
+                {artista.bio && (
+                    <Text className="mx-4 mt-4 text-base leading-6 text-testo-primario">
+                        {artista.bio}
+                    </Text>
+                )}
 
-            <Button
-                mode="outlined"
-                style={stili.bottoneSegui}
-                onPress={() => setAvvisoVisibile(true)}
-            >
-                Segui
-            </Button>
-
-            <Text variant="titleMedium" style={stili.titoloSezione}>
-                Brani
-            </Text>
-            <List.Section>
-                {artista.brani.map(brano => (
-                    <List.Item
-                        key={brano.id}
-                        title={brano.titolo}
+                <View className="mx-4 mt-4 flex-row">
+                    <Bottone
+                        etichetta="Segui"
+                        icona={UserPlus}
                         onPress={() =>
-                            navigation.navigate('DettaglioBrano', {
-                                branoId: brano.id,
-                            })
-                        }
-                        right={
-                            brano.url_spotify
-                                ? creaBottoneSpotify(brano.url_spotify)
-                                : undefined
+                            setMessaggioAvviso('Accedi per seguire gli artisti')
                         }
                     />
-                ))}
-            </List.Section>
+                </View>
 
-            <Text variant="titleMedium" style={stili.titoloSezione}>
-                Album
-            </Text>
-            <List.Section>
-                {artista.album.map(album => (
-                    <List.Item
-                        key={album.id}
-                        title={album.titolo}
-                        onPress={() =>
-                            navigation.navigate('DettaglioAlbum', {
-                                albumId: album.id,
-                            })
-                        }
-                    />
-                ))}
-            </List.Section>
+                {artista.brani.length > 0 && (
+                    <>
+                        <TitoloSezione>Brani</TitoloSezione>
+                        {artista.brani.map(brano => (
+                            <RigaElenco
+                                key={brano.id}
+                                titolo={brano.titolo}
+                                immagineUrl={immagineDelBrano(brano)}
+                                onPress={() =>
+                                    navigation.navigate('DettaglioBrano', {
+                                        branoId: brano.id,
+                                    })
+                                }
+                                destra={
+                                    brano.url_spotify ? (
+                                        <BottoneIcona
+                                            icona={ExternalLink}
+                                            accessibilityLabel={`Ascolta ${brano.titolo} su Spotify`}
+                                            onPress={() =>
+                                                Linking.openURL(
+                                                    brano.url_spotify!,
+                                                )
+                                            }
+                                        />
+                                    ) : undefined
+                                }
+                            />
+                        ))}
+                    </>
+                )}
 
-            <Snackbar
-                visible={avvisoVisibile}
-                onDismiss={() => setAvvisoVisibile(false)}
-                duration={3000}
-            >
-                Accedi per seguire gli artisti
-            </Snackbar>
-        </ScrollView>
+                {artista.album.length > 0 && (
+                    <>
+                        <TitoloSezione>Album</TitoloSezione>
+                        {artista.album.map(album => (
+                            <RigaElenco
+                                key={album.id}
+                                titolo={album.titolo}
+                                sottotitolo={
+                                    album.data_pubblicazione
+                                        ? annoDa(album.data_pubblicazione)
+                                        : undefined
+                                }
+                                immagineUrl={album.copertina_url}
+                                onPress={() =>
+                                    navigation.navigate('DettaglioAlbum', {
+                                        albumId: album.id,
+                                    })
+                                }
+                            />
+                        ))}
+                    </>
+                )}
+
+                <TitoloSezione>Prossimi eventi</TitoloSezione>
+                {artista.eventi.length === 0 ? (
+                    <Text className="mx-4 mt-3 text-testo-secondario">
+                        Nessun evento in programma
+                    </Text>
+                ) : (
+                    artista.eventi.map(evento => (
+                        <RigaElenco
+                            key={evento.id}
+                            titolo={evento.titolo}
+                            sottotitolo={[
+                                formattaData(evento.data_evento),
+                                [evento.luogo, evento.citta]
+                                    .filter(Boolean)
+                                    .join(', '),
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        />
+                    ))
+                )}
+            </ScrollView>
+
+            <Avviso
+                messaggio={messaggioAvviso}
+                onChiudi={() => setMessaggioAvviso(null)}
+            />
+        </View>
     );
 }
-
-const stili = StyleSheet.create({
-    contenitore: {
-        flex: 1,
-    },
-    contenitoreErrore: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    titolo: {
-        marginTop: 16,
-        marginHorizontal: 16,
-    },
-    bio: {
-        marginTop: 8,
-        marginHorizontal: 16,
-    },
-    bottoneSegui: {
-        marginTop: 16,
-        marginHorizontal: 16,
-        alignSelf: 'flex-start',
-    },
-    titoloSezione: {
-        marginTop: 24,
-        marginHorizontal: 16,
-    },
-});
 
 export default DettaglioArtistaSchermata;

@@ -57,14 +57,23 @@ async function dettaglioArtista(req, res) {
     );
 
     const [album] = await pool.query(
-        `SELECT id, titolo, data_pubblicazione
+        `SELECT id, titolo, data_pubblicazione, copertina_url
          FROM album
          WHERE artista_id = ?
          ORDER BY data_pubblicazione DESC`,
         [id],
     );
 
-    res.json({ ...righeArtista[0], generi, brani, album });
+    const [eventi] = await pool.query(
+        `SELECT e.id, e.titolo, e.data_evento, e.luogo, e.citta
+         FROM evento e
+         INNER JOIN evento_artista ea ON ea.evento_id = e.id
+         WHERE ea.artista_id = ? AND e.data_evento >= CURDATE()
+         ORDER BY e.data_evento ASC`,
+        [id],
+    );
+
+    res.json({ ...righeArtista[0], generi, brani, album, eventi });
 }
 
 router.get('/artisti', elencaArtisti);
