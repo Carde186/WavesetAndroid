@@ -13,7 +13,7 @@ import RigaElenco from '../componenti/RigaElenco';
 import StatoSchermata from '../componenti/StatoSchermata';
 import TitoloSezione from '../componenti/TitoloSezione';
 import type { ParametriCatalogo } from '../navigazione/tipi';
-import { annoDa, formattaData } from '../utilita/data';
+import { annoDa, formattaData, formattaOra } from '../utilita/data';
 
 type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioArtista'>;
 
@@ -160,6 +160,9 @@ function DettaglioArtistaSchermata({ route, navigation }: Props) {
                             titolo={evento.titolo}
                             sottotitolo={[
                                 formattaData(evento.data_evento),
+                                evento.ora_evento
+                                    ? formattaOra(evento.ora_evento)
+                                    : '',
                                 [evento.luogo, evento.citta]
                                     .filter(Boolean)
                                     .join(', '),

@@ -28,6 +28,8 @@ export type EventoSintetico = {
     id: number;
     titolo: string;
     data_evento: string;
+    // "HH:MM:SS" locale del locale, mai convertito da/a UTC; null se ignoto.
+    ora_evento: string | null;
     luogo: string | null;
     citta: string | null;
 };

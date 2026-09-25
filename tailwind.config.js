@@ -10,6 +10,12 @@ module.exports = {
                 sfondo: '#0B0B0F',
                 superficie: '#16161D',
                 accento: '#8B5CF6',
+                // Sfondo dei controlli con etichetta di testo piccolo
+                // (bottone primario, pillola selezionata): #8B5CF6 dà solo
+                // 3,89:1 col testo primario, sotto il 4,5:1 WCAG AA. Stessa
+                // tonalità, più scuro: 5,23:1. L'accento resta #8B5CF6 per
+                // tab attiva, link, icone e testo su sfondo scuro.
+                'accento-scuro': '#7C3AED',
                 testo: {
                     primario: '#F5F5F7',
                     secondario: '#9CA3AF',

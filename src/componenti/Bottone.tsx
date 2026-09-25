@@ -16,7 +16,7 @@ type Props = {
 // Classi complete scritte per intero (non composte a pezzi): NativeWind le
 // trova leggendo il sorgente, come Tailwind.
 const CLASSI_CONTENITORE: Record<Variante, string> = {
-    primario: 'bg-accento px-5',
+    primario: 'bg-accento-scuro px-5',
     secondario: 'border border-bordo bg-superficie px-5',
     testo: 'px-3',
 };

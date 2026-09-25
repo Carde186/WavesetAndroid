@@ -21,6 +21,12 @@ export function formattaData(iso: string): string {
     return `${Number(giorno)} ${MESI_ABBREVIATI[Number(mese) - 1]} ${anno}`;
 }
 
+// ora_evento arriva come "HH:MM:SS" (colonna TIME): è l'ora locale del locale,
+// quindi si mostra così com'è, senza mai passare da `Date` e dal fuso del device.
+export function formattaOra(ora: string): string {
+    return ora.slice(0, 5);
+}
+
 export function annoDa(iso: string): string {
     return iso.slice(0, 4);
 }

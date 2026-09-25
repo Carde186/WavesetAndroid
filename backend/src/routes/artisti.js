@@ -65,11 +65,11 @@ async function dettaglioArtista(req, res) {
     );
 
     const [eventi] = await pool.query(
-        `SELECT e.id, e.titolo, e.data_evento, e.luogo, e.citta
+        `SELECT e.id, e.titolo, e.data_evento, e.ora_evento, e.luogo, e.citta
          FROM evento e
          INNER JOIN evento_artista ea ON ea.evento_id = e.id
          WHERE ea.artista_id = ? AND e.data_evento >= CURDATE()
-         ORDER BY e.data_evento ASC`,
+         ORDER BY e.data_evento ASC, e.ora_evento ASC`,
         [id],
     );
 

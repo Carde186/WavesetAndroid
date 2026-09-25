@@ -12,7 +12,7 @@ function Pillola({ etichetta, selezionato, onPress }: Props) {
             onPress={onPress}
             className={`rounded-bottone-sm border px-4 py-2 active:opacity-70 ${
                 selezionato
-                    ? 'border-accento bg-accento'
+                    ? 'border-accento-scuro bg-accento-scuro'
                     : 'border-bordo bg-superficie'
             }`}
         >

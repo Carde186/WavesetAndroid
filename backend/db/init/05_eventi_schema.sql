@@ -3,12 +3,18 @@
 -- di sostituirlo. latitudine/longitudine sono già nel modello dati
 -- (CLAUDE.md) anche se oggi nessuna schermata le usa.
 --
--- data_evento è DATE (non DATETIME) di proposito: un orario senza fuso del
--- luogo verrebbe mostrato sbagliato sul device (il JSON lo serializza in UTC).
+-- data_evento è DATE e ora_evento è TIME, separati e senza fuso, di proposito:
+-- sono sempre "la data e l'ora locali del locale". Un DATETIME/TIMESTAMP
+-- verrebbe serializzato in JSON come istante UTC e il device lo mostrerebbe
+-- spostato in base al suo fuso; DATE e TIME restano stringhe (mysql2 le
+-- restituisce così, "21:30:00") e non vengono mai convertite.
+-- ora_evento è NULL quando l'orario non è noto (es. evento inserito a mano
+-- o import Ticketmaster senza localTime).
 CREATE TABLE evento (
     id INT AUTO_INCREMENT PRIMARY KEY,
     titolo VARCHAR(200) NOT NULL,
     data_evento DATE NOT NULL,
+    ora_evento TIME NULL,
     luogo VARCHAR(200),
     citta VARCHAR(100),
     latitudine DECIMAL(9,6),
