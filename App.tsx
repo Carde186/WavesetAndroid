@@ -3,6 +3,8 @@
  * @format
  */
 
+import './global.css';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';

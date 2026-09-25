@@ -27,7 +27,7 @@ Sono due consegne separate per il corso, che condividono lo stesso backend:
      future; riferimenti utili
    - useState, useEffect
    - React Navigation con più di uno screen
-   - libreria di componenti CSS (React Native Paper) o stile CSS decente
+   - libreria di componenti CSS (NativeWind) o stile CSS decente
    - useContext (qui: tema chiaro/scuro — coincide con quanto già previsto
      in Impostazioni)
    - è permesso agganciarsi a backend di terze parti online — **scelta
@@ -52,13 +52,17 @@ Sono due consegne separate per il corso, che condividono lo stesso backend:
    - deve funzionare interamente con `git clone` + istruzioni nel README
    - extra utili: screenshot, documentazione, dati di init
 
-Il backend si sviluppa una volta sola dentro il monorepo `waveset`; per
-`WavesetAndroid` se ne copia uno snapshot al momento della consegna, incluso
-il proprio `docker-compose.yml` per backend+database.
+Per l'ordine delle scadenze, il backend nasce per primo qui in
+`WavesetAndroid` (non nel monorepo `waveset`, che ancora non esiste). Quando
+si aprirà `waveset` per il progetto Fullstack, il codice backend verrà
+portato lì e da quel momento sarà quella la versione di riferimento, incluso
+il proprio `docker-compose.yml`.
 
 ## Stack tecnologico
 - **Web**: React
-- **Mobile**: React Native (React Native Paper come libreria componenti)
+- **Mobile**: React Native (NativeWind — Tailwind per React Native — al posto
+  di React Native Paper: nessuno stile "Material" imposto, design tokens
+  propri, vedi "Identità visiva" sotto)
 - **Backend**: Node.js + Express (nuovo — sostituisce il backend Spring Boot
   già consegnato come progetto a sé per il corso Java, che resta invariato e
   non viene toccato)
@@ -71,7 +75,40 @@ il proprio `docker-compose.yml` per backend+database.
 - **Pannello admin**: non è un'app separata — sono schermate dentro la stessa
   app React, dietro controllo del ruolo ADMIN
 
-## Struttura repository
+## Identità visiva
+
+Decisa dopo aver visto le prime schermate con React Native Paper (stile
+Material di default, non convincente). Sostituito con NativeWind e questi
+design token — nessun valore va inventato o "avvicinato", sono questi
+esatti:
+
+| Token | Valore | Uso |
+|---|---|---|
+| Sfondo | `#0B0B0F` | sfondo principale delle schermate |
+| Superficie | `#16161D` | card, righe, elementi rilevati dallo sfondo |
+| Accento primario | `#8B5CF6` | bottoni primari, tab attiva, link, elementi selezionati |
+| Testo primario | `#F5F5F7` | titoli, testo principale |
+| Testo secondario | `#9CA3AF` | metadati (durata, data, sottotitoli) |
+| Bordi/divisori | `#2A2A33` | separatori, contorni card |
+| Raggio card | `8px` | |
+| Raggio bottoni | `12–14px` | |
+
+Un solo accento cromatico (viola), niente colore diverso per genere o
+categoria — resta monocromatico (viola + scale di grigio), coerente con un
+aspetto da player musicale curato invece che decorativo. Niente ombre/
+elevazioni in stile Material: profondità data da bordi sottili 1px e dal
+contrasto superficie/sfondo, non da drop-shadow (rendono male su sfondo
+scuro).
+
+Icone: **Lucide** (SVG via `react-native-svg`), non più Material Design
+Icons. Decisione presa durante la migrazione, non solo per coerenza visiva:
+le icone a font (Text+fontFamily) sono risultate incompatibili con la
+pipeline di stile di NativeWind (`react-native-css-interop` sovrascrive il
+`fontFamily` impostato via `style` su qualunque `Text`, incluso quello
+interno alle vector-icons) — Lucide, essendo SVG e non Text-based, evita
+strutturalmente il problema.
+
+
 
 ```
 waveset/                      (monorepo — progetto Fullstack)
@@ -116,9 +153,11 @@ Modifiche rispetto allo spec iniziale, decise durante la progettazione:
 | Entità/relazione | Decisione v1 |
 |---|---|
 | **Genere** | Nuova entità, N:N con Artist. Song NON ha un genere proprio — lo eredita filtrando tramite l'artista. |
+| **Artist** | Aggiunto `immagine_url` — mai definito esplicitamente finora. Popolato dal seed Spotify (`artist.images[0].url`); finché il seed reale non c'è, usare un URL placeholder stabile nel seed temporaneo, non lasciare il campo vuoto. |
 | **PlaylistSong** | Join esplicito Playlist↔Song con campo `aggiunto_il` (timestamp). Ordine = cronologico. Niente campo `posizione`/riordino manuale in v1. |
 | **Review** | Aggiunto vincolo di unicità (user_id, song_id). Serve supporto per la modifica, non solo la creazione. |
-| **Album** (nuova) | `titolo`, `data_pubblicazione`, `artista_id` (N:1 Artist). `Song.album_id` nullable — un brano può non appartenere a nessun album. `Song.data_pubblicazione` è un campo a sé, indipendente da quella dell'album. |
+| **Album** (nuova) | `titolo`, `data_pubblicazione`, `artista_id` (N:1 Artist), `copertina_url` (da `album.images[0].url` su Spotify — anche i singoli su Spotify hanno un "album" wrapper con copertina, quindi il campo è quasi sempre popolabile). `Song.album_id` nullable — un brano può non appartenere a nessun album. `Song.data_pubblicazione` è un campo a sé, indipendente da quella dell'album. |
+| **Song — immagine** | Nessun campo immagine proprio: eredita `copertina_url` dal suo Album quando esiste; se `album_id` è nullo (brano inserito a mano senza album), fallback sull'`immagine_url` dell'Artist lato frontend — non duplicare il dato nel DB. |
 | **AlbumReview** (nuova) | Gemella di Review ma per Album (stessa struttura, stesso vincolo di unicità). Entità separata per non modificare Review, già scritta e testata nel backend Spring. |
 | **Event** | Aggiunti `latitudine`/`longitudine` (numerici). Inseriti a mano dall'ADMIN per gli eventi non importati da Ticketmaster — vedi sezione Ticketmaster più sotto per l'automazione. |
 | **Event↔Artist (lineup)** | Resta N:N pura. Nessun campo "ruolo" (headliner/opening act) in v1 — rimandato al futuro. |
@@ -316,9 +355,13 @@ procede, spuntando cosa è fatto:
 
 - [x] Docker Compose (backend + MySQL)
 - [x] Scaffolding progetto + navigazione base
-- [ ] Schermate di catalogo (Home, Dettaglio artista/brano/album)
-- [ ] Playlist
-- [ ] Autenticazione (JWT contro il backend, ruoli USER/ADMIN)
+- [x] Schermate di catalogo (Home, Dettaglio artista/brano/album)
+- [x] Playlist (multiple per utente, non una sola di default)
+- [ ] Migrazione stile: React Native Paper → NativeWind + identità visiva
+      (vedi sezione dedicata) — da fare ora, prima di proseguire, sulle
+      schermate già scritte
+- [ ] Autenticazione (JWT contro il backend, ruoli USER/ADMIN — includere
+      test di isolamento tra due utenti reali, non solo verifica login)
 - [ ] Ricerca
 - [ ] Eventi + mappa (Google Maps, marker, Dettaglio evento)
 - [ ] Integrazione Ticketmaster (import + coda di revisione)

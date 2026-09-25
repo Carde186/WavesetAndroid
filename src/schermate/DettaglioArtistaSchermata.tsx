@@ -10,18 +10,22 @@ import {
     useTheme,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ExternalLink } from 'lucide-react-native';
 
+import { creaIconaPaper } from '../componenti/iconaPaper';
 import { recuperaArtista } from '../api/catalogo';
 import type { ArtistaDettaglio } from '../api/tipi';
-import type { ParametriStackHome } from '../navigazione/tipi';
+import type { ParametriCatalogo } from '../navigazione/tipi';
 
-type Props = NativeStackScreenProps<ParametriStackHome, 'DettaglioArtista'>;
+type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioArtista'>;
+
+const iconaEsterna = creaIconaPaper(ExternalLink);
 
 function creaBottoneSpotify(url: string) {
-    return (props: { color: string }) => (
+    return ({ color }: { color: string }) => (
         <IconButton
-            {...props}
-            icon="spotify"
+            icon={iconaEsterna}
+            iconColor={color}
             onPress={() => Linking.openURL(url)}
         />
     );

@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Icona, {
-    type MaterialDesignIconsIconName,
-} from '@react-native-vector-icons/material-design-icons';
+import { Calendar, Home, ListMusic, User } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 import EventiStack from './EventiStack';
 import HomeStack from './HomeStack';
@@ -11,16 +10,17 @@ import type { ParametriTab } from './tipi';
 
 const Tab = createBottomTabNavigator<ParametriTab>();
 
-const iconePerTab: Record<keyof ParametriTab, MaterialDesignIconsIconName> = {
-    HomeStack: 'home',
-    EventiStack: 'calendar',
-    PlaylistStack: 'music-box-multiple',
-    ProfiloStack: 'account',
+const iconePerTab: Record<keyof ParametriTab, LucideIcon> = {
+    HomeStack: Home,
+    EventiStack: Calendar,
+    PlaylistStack: ListMusic,
+    ProfiloStack: User,
 };
 
 function creaTabBarIcon(nomeRoute: keyof ParametriTab) {
+    const Icona = iconePerTab[nomeRoute];
     return ({ color, size }: { color: string; size: number }) => (
-        <Icona name={iconePerTab[nomeRoute]} color={color} size={size} />
+        <Icona color={color} size={size} />
     );
 }
 

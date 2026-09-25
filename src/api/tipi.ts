@@ -6,6 +6,7 @@ export type Genere = {
 export type ArtistaSintetico = {
     id: number;
     nome: string;
+    immagine_url: string | null;
 };
 
 export type BranoSintetico = {
@@ -26,9 +27,22 @@ export type ArtistaDettaglio = {
     id: number;
     nome: string;
     bio: string | null;
+    immagine_url: string | null;
     generi: Genere[];
     brani: BranoSintetico[];
     album: AlbumSintetico[];
+};
+
+export type ArtistaRiferimento = {
+    id: number;
+    nome: string;
+    immagineUrl: string | null;
+};
+
+export type AlbumRiferimento = {
+    id: number;
+    titolo: string;
+    copertinaUrl: string | null;
 };
 
 export type BranoDettaglio = {
@@ -36,19 +50,37 @@ export type BranoDettaglio = {
     titolo: string;
     dataPubblicazione: string | null;
     urlSpotify: string | null;
-    artista: ArtistaSintetico;
-    album: { id: number; titolo: string } | null;
+    artista: ArtistaRiferimento;
+    album: AlbumRiferimento | null;
 };
 
 export type AlbumDettaglio = {
     id: number;
     titolo: string;
     dataPubblicazione: string | null;
-    artista: ArtistaSintetico;
+    copertinaUrl: string | null;
+    artista: ArtistaRiferimento;
     brani: {
         id: number;
         titolo: string;
         data_pubblicazione: string | null;
         url_spotify: string | null;
     }[];
+};
+
+export type PlaylistSintetica = {
+    id: number;
+    nome: string;
+};
+
+export type BranoPlaylist = {
+    id: number;
+    titolo: string;
+    url_spotify: string | null;
+    artista_nome: string;
+    aggiunto_il: string;
+};
+
+export type PlaylistDettaglio = PlaylistSintetica & {
+    brani: BranoPlaylist[];
 };

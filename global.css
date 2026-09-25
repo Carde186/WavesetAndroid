@@ -1,0 +1,8 @@
+/* Niente @tailwind base: il "preflight" di Tailwind è pensato per
+   resettare gli stili di default del browser (font-family universale,
+   margini, box-sizing, ...) — su React Native non c'è nulla da resettare,
+   e applicarlo comunque sovrascrive il fontFamily custom dei componenti
+   Text che non lo dichiarano esplicitamente, incluse le icone (rendono
+   i glifi con un font dedicato via Text + fontFamily). */
+@tailwind components;
+@tailwind utilities;

@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import {
-    ActivityIndicator,
-    Chip,
-    List,
-    Text,
-    useTheme,
-} from 'react-native-paper';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { recuperaArtisti, recuperaGeneri } from '../api/catalogo';
-import type { ArtistaSintetico, Genere } from '../api/tipi';
+import {
+    recuperaArtisti,
+    recuperaBraniRecenti,
+    recuperaGeneri,
+} from '../api/catalogo';
+import CartaNovita from '../componenti/CartaNovita';
+import Pillola from '../componenti/Pillola';
+import RigaElenco from '../componenti/RigaElenco';
+import type { ArtistaSintetico, BranoDettaglio, Genere } from '../api/tipi';
 import type { ParametriStackHome } from '../navigazione/tipi';
 
 type Props = NativeStackScreenProps<ParametriStackHome, 'Home'>;
 
 function HomeSchermata({ navigation }: Props) {
-    const tema = useTheme();
+    const [braniRecenti, setBraniRecenti] = useState<BranoDettaglio[]>([]);
     const [generi, setGeneri] = useState<Genere[]>([]);
     const [genereSelezionato, setGenereSelezionato] = useState<number | null>(
         null,
@@ -24,6 +24,15 @@ function HomeSchermata({ navigation }: Props) {
     const [artisti, setArtisti] = useState<ArtistaSintetico[]>([]);
     const [inCaricamento, setInCaricamento] = useState(true);
     const [errore, setErrore] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Sezione secondaria: se fallisce, resta semplicemente vuota
+        // (nascosta) invece di mostrare un errore che competerebbe con il
+        // contenuto principale della Home.
+        recuperaBraniRecenti()
+            .then(setBraniRecenti)
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         recuperaGeneri()
@@ -46,41 +55,65 @@ function HomeSchermata({ navigation }: Props) {
     }
 
     return (
-        <ScrollView
-            style={[
-                stili.contenitore,
-                { backgroundColor: tema.colors.background },
-            ]}
-        >
-            <Text variant="titleLarge" style={stili.titoloSezione}>
+        <ScrollView className="flex-1 bg-sfondo">
+            {braniRecenti.length > 0 && (
+                <>
+                    <Text className="mx-4 mt-4 text-xl font-semibold text-testo-primario">
+                        Novità
+                    </Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        className="px-4 py-3"
+                    >
+                        {braniRecenti.map(brano => (
+                            <CartaNovita
+                                key={brano.id}
+                                titolo={brano.titolo}
+                                artistaNome={brano.artista.nome}
+                                immagineUrl={
+                                    brano.album?.copertinaUrl ??
+                                    brano.artista.immagineUrl
+                                }
+                                onPress={() =>
+                                    navigation.navigate('DettaglioBrano', {
+                                        branoId: brano.id,
+                                    })
+                                }
+                            />
+                        ))}
+                    </ScrollView>
+                </>
+            )}
+
+            <Text className="mx-4 mt-4 text-xl font-semibold text-testo-primario">
                 Esplora per genere
             </Text>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={stili.rigaChip}>
+                <View className="flex-row gap-2 px-4 py-3">
                     {generi.map(genere => (
-                        <Chip
+                        <Pillola
                             key={genere.id}
-                            style={stili.chip}
-                            selected={genereSelezionato === genere.id}
+                            etichetta={genere.nome}
+                            selezionato={genereSelezionato === genere.id}
                             onPress={() => selezionaGenere(genere.id)}
-                        >
-                            {genere.nome}
-                        </Chip>
+                        />
                     ))}
                 </View>
             </ScrollView>
 
-            {errore && <Text style={stili.errore}>{errore}</Text>}
+            {errore && <Text className="mx-4 text-red-400">{errore}</Text>}
 
             {inCaricamento ? (
-                <ActivityIndicator style={stili.caricamento} />
+                <ActivityIndicator className="mt-6 text-accento" />
             ) : (
-                <List.Section>
+                <View>
                     {artisti.map(artista => (
-                        <List.Item
+                        <RigaElenco
                             key={artista.id}
-                            title={artista.nome}
+                            titolo={artista.nome}
+                            immagineUrl={artista.immagine_url}
                             onPress={() =>
                                 navigation.navigate('DettaglioArtista', {
                                     artistaId: artista.id,
@@ -88,35 +121,10 @@ function HomeSchermata({ navigation }: Props) {
                             }
                         />
                     ))}
-                </List.Section>
+                </View>
             )}
         </ScrollView>
     );
 }
-
-const stili = StyleSheet.create({
-    contenitore: {
-        flex: 1,
-    },
-    titoloSezione: {
-        marginTop: 16,
-        marginHorizontal: 16,
-    },
-    rigaChip: {
-        flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-    },
-    chip: {
-        marginRight: 8,
-    },
-    errore: {
-        marginHorizontal: 16,
-        color: 'red',
-    },
-    caricamento: {
-        marginTop: 24,
-    },
-});
 
 export default HomeSchermata;
