@@ -1,36 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
-import {
-    ActivityIndicator,
-    IconButton,
-    List,
-    Text,
-    useTheme,
-} from 'react-native-paper';
+import { Linking, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ExternalLink } from 'lucide-react-native';
 
-import { creaIconaPaper } from '../componenti/iconaPaper';
 import { recuperaAlbum } from '../api/catalogo';
 import type { AlbumDettaglio } from '../api/tipi';
+import BottoneIcona from '../componenti/BottoneIcona';
+import IntestazioneDettaglio from '../componenti/IntestazioneDettaglio';
+import RigaElenco from '../componenti/RigaElenco';
+import StatoSchermata from '../componenti/StatoSchermata';
+import TitoloSezione from '../componenti/TitoloSezione';
 import type { ParametriCatalogo } from '../navigazione/tipi';
+import { formattaData } from '../utilita/data';
 
 type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioAlbum'>;
 
-const iconaEsterna = creaIconaPaper(ExternalLink);
-
-function creaBottoneSpotify(url: string) {
-    return ({ color }: { color: string }) => (
-        <IconButton
-            icon={iconaEsterna}
-            iconColor={color}
-            onPress={() => Linking.openURL(url)}
-        />
-    );
-}
-
 function DettaglioAlbumSchermata({ route, navigation }: Props) {
-    const tema = useTheme();
     const { albumId } = route.params;
 
     const [album, setAlbum] = useState<AlbumDettaglio | null>(null);
@@ -39,6 +24,7 @@ function DettaglioAlbumSchermata({ route, navigation }: Props) {
 
     useEffect(() => {
         setInCaricamento(true);
+        setErrore(null);
 
         recuperaAlbum(albumId)
             .then(setAlbum)
@@ -47,110 +33,72 @@ function DettaglioAlbumSchermata({ route, navigation }: Props) {
     }, [albumId]);
 
     if (inCaricamento) {
-        return (
-            <View
-                style={[
-                    stili.contenitoreErrore,
-                    { backgroundColor: tema.colors.background },
-                ]}
-            >
-                <ActivityIndicator />
-            </View>
-        );
+        return <StatoSchermata tipo="caricamento" />;
     }
 
     if (errore || !album) {
         return (
-            <View
-                style={[
-                    stili.contenitoreErrore,
-                    { backgroundColor: tema.colors.background },
-                ]}
-            >
-                <Text>{errore ?? 'Album non trovato'}</Text>
-            </View>
+            <StatoSchermata
+                tipo="errore"
+                messaggio={errore ?? 'Album non trovato'}
+            />
         );
     }
 
     return (
         <ScrollView
-            style={[
-                stili.contenitore,
-                { backgroundColor: tema.colors.background },
-            ]}
+            className="flex-1 bg-sfondo"
+            contentContainerClassName="pb-8"
         >
-            <Text variant="headlineMedium" style={stili.titolo}>
-                {album.titolo}
-            </Text>
-
-            <Text
-                variant="bodyLarge"
-                style={stili.artista}
-                onPress={() =>
+            <IntestazioneDettaglio
+                immagineUrl={album.copertinaUrl}
+                titolo={album.titolo}
+                sottotitolo={album.artista.nome}
+                onPressSottotitolo={() =>
                     navigation.navigate('DettaglioArtista', {
                         artistaId: album.artista.id,
                     })
                 }
-            >
-                {album.artista.nome}
-            </Text>
+                righe={
+                    album.dataPubblicazione
+                        ? [
+                              `Pubblicato il ${formattaData(
+                                  album.dataPubblicazione,
+                              )}`,
+                          ]
+                        : []
+                }
+            />
 
-            {album.dataPubblicazione && (
-                <Text style={stili.dettaglio}>
-                    Pubblicato il {album.dataPubblicazione.slice(0, 10)}
-                </Text>
+            {album.brani.length > 0 && (
+                <>
+                    <TitoloSezione>Tracce</TitoloSezione>
+                    {album.brani.map(brano => (
+                        <RigaElenco
+                            key={brano.id}
+                            titolo={brano.titolo}
+                            onPress={() =>
+                                navigation.navigate('DettaglioBrano', {
+                                    branoId: brano.id,
+                                })
+                            }
+                            destra={
+                                brano.url_spotify ? (
+                                    <BottoneIcona
+                                        icona={ExternalLink}
+                                        accessibilityLabel={`Ascolta ${brano.titolo} su Spotify`}
+                                        onPress={() =>
+                                            Linking.openURL(brano.url_spotify!)
+                                        }
+                                    />
+                                ) : undefined
+                            }
+                        />
+                    ))}
+                </>
             )}
-
-            <Text variant="titleMedium" style={stili.titoloSezione}>
-                Tracklist
-            </Text>
-            <List.Section>
-                {album.brani.map(brano => (
-                    <List.Item
-                        key={brano.id}
-                        title={brano.titolo}
-                        onPress={() =>
-                            navigation.navigate('DettaglioBrano', {
-                                branoId: brano.id,
-                            })
-                        }
-                        right={
-                            brano.url_spotify
-                                ? creaBottoneSpotify(brano.url_spotify)
-                                : undefined
-                        }
-                    />
-                ))}
-            </List.Section>
         </ScrollView>
     );
 }
-
-const stili = StyleSheet.create({
-    contenitore: {
-        flex: 1,
-    },
-    contenitoreErrore: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    titolo: {
-        marginTop: 16,
-        marginHorizontal: 16,
-    },
-    artista: {
-        marginTop: 4,
-        marginHorizontal: 16,
-    },
-    dettaglio: {
-        marginTop: 8,
-        marginHorizontal: 16,
-    },
-    titoloSezione: {
-        marginTop: 24,
-        marginHorizontal: 16,
-    },
-});
 
 export default DettaglioAlbumSchermata;
