@@ -96,3 +96,10 @@ export type BranoPlaylist = {
 export type PlaylistDettaglio = PlaylistSintetica & {
     brani: BranoPlaylist[];
 };
+
+export type Utente = {
+    id: number;
+    nome: string;
+    email: string;
+    ruolo: 'USER' | 'ADMIN';
+};

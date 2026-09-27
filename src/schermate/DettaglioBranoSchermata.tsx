@@ -10,6 +10,7 @@ import {
     elencaPlaylist,
 } from '../api/playlist';
 import type { BranoDettaglio, PlaylistSintetica } from '../api/tipi';
+import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import Avviso from '../componenti/Avviso';
 import Bottone from '../componenti/Bottone';
 import CampoTesto from '../componenti/CampoTesto';
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioBrano'>;
 
 function DettaglioBranoSchermata({ route, navigation }: Props) {
     const { branoId } = route.params;
+    const { utente } = useAutenticazione();
 
     const [brano, setBrano] = useState<BranoDettaglio | null>(null);
     const [inCaricamento, setInCaricamento] = useState(true);
@@ -46,6 +48,11 @@ function DettaglioBranoSchermata({ route, navigation }: Props) {
     }, [branoId]);
 
     function apriSelettorePlaylist() {
+        if (!utente) {
+            setMessaggioAvviso('Accedi per aggiungere brani alle playlist');
+            return;
+        }
+
         setNomeNuovaPlaylist('');
         setSelettoreVisibile(true);
         elencaPlaylist()

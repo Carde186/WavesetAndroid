@@ -18,10 +18,12 @@ export type ParametriStackEventi = {
 export type ParametriStackPlaylist = ParametriCatalogo & {
     LeMiePlaylist: undefined;
     DettaglioPlaylist: { playlistId: number };
+    Accedi: undefined;
 };
 
 export type ParametriStackProfilo = {
     Profilo: undefined;
+    Accedi: undefined;
 };
 
 export type ParametriTab = {

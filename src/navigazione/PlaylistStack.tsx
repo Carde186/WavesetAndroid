@@ -1,6 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import LogoHeaderLeft from './LogoHeaderLeft';
+import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
+import AccediSchermata from '../schermate/AccediSchermata';
 import DettaglioAlbumSchermata from '../schermate/DettaglioAlbumSchermata';
 import DettaglioArtistaSchermata from '../schermate/DettaglioArtistaSchermata';
 import DettaglioBranoSchermata from '../schermate/DettaglioBranoSchermata';
@@ -10,7 +12,25 @@ import type { ParametriStackPlaylist } from './tipi';
 
 const Stack = createNativeStackNavigator<ParametriStackPlaylist>();
 
+// Schermate condizionali (pattern "authentication flow" di React Navigation):
+// da anonimo lo stack contiene solo Accedi; al login/logout React Navigation
+// sostituisce l'intero stack, così dopo un logout non restano schermate
+// con dati dell'utente precedente.
 function PlaylistStack() {
+    const { utente } = useAutenticazione();
+
+    if (!utente) {
+        return (
+            <Stack.Navigator>
+                <Stack.Screen
+                    name="Accedi"
+                    component={AccediSchermata}
+                    options={{ title: 'Playlist', headerLeft: LogoHeaderLeft }}
+                />
+            </Stack.Navigator>
+        );
+    }
+
     return (
         <Stack.Navigator>
             <Stack.Screen
