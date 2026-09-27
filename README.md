@@ -1,97 +1,97 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Waveset (Android)
 
-# Getting Started
+App React Native per scoprire musica elettronica: catalogo di artisti, brani
+e album consultabile senza account; con un account si creano e gestiscono
+playlist. Il backend (Node.js + Express + MySQL) gira in Docker Compose nella
+cartella `backend/` di questo stesso repository.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Requisiti
 
-## Step 1: Start Metro
+- Node.js `^22.13.0`, `^24.3.0` o `>= 26` (richiesto da React Native 0.87)
+- Docker con Docker Compose
+- Ambiente Android per React Native (SDK, JDK) e un dispositivo o emulatore
+  raggiungibile da `adb`
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Avvio
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### 1. Backend e database
 
 ```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
+cd backend
+cp .env.example .env
+docker compose up -d --build
 ```
 
-## Step 2: Build and run your app
+Al primo avvio MySQL esegue gli script in `backend/db/init/` (schema e dati di
+prova). Girano solo su un volume vuoto: dopo una modifica agli script, o per
+tornare ai dati iniziali, `docker compose down -v` e poi di nuovo `up`.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+Verifica: `curl localhost:3000/health`.
 
-### Android
+### 2. App
+
+Dalla radice del repository:
 
 ```sh
-# Using npm
+npm install
 npm run android
-
-# OR using Yarn
-yarn android
 ```
 
-### iOS
+`npm install` applica anche le patch in `patches/` (tramite `patch-package`,
+nello script `postinstall`). Serve una build nativa (`npm run android`), non
+basta ricaricare Metro: l'app usa moduli nativi (`react-native-keychain`,
+`react-native-svg`, `react-native-reanimated`).
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+### 3. `adb reverse`
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+L'app chiama il backend su `http://localhost:3000` (vedi
+`src/api/config.ts`). Sul telefono o sull'emulatore `localhost` è il
+dispositivo stesso: le porte vanno inoltrate al computer.
 
 ```sh
-bundle install
+adb reverse tcp:3000 tcp:3000   # backend
+adb reverse tcp:8081 tcp:8081   # Metro
 ```
 
-Then, and every time you update your native dependencies, run:
+L'inoltro si perde a ogni riconnessione del cavo o riavvio di `adb`: se l'app
+mostra errori di rete (`Network request failed` nei log) mentre
+`curl localhost:3000/health` dal computer risponde, rilanciare i due comandi.
+Con più dispositivi collegati: `adb -s <seriale> reverse ...` per ciascuno
+(`adb devices` elenca i seriali).
+
+## Credenziali di prova
+
+Non c'è registrazione: gli utenti sono creati dal seed
+(`backend/db/init/04_playlist_seed.sql`).
+
+| Email | Password | Ruolo | Dati |
+|---|---|---|---|
+| `alice@waveset.test` | `alice-waveset` | USER | 2 playlist |
+| `bob@waveset.test` | `bob-waveset` | USER | 1 playlist |
+| `admin@waveset.test` | `admin-waveset` | ADMIN | nessuna playlist |
+
+Il catalogo è consultabile senza login; Playlist e Profilo richiedono
+l'accesso.
+
+**Una sessione per dispositivo**: accedere con un secondo utente sullo stesso
+telefono chiude la sessione del primo. Per provare Alice e Bob in parallelo
+servono due dispositivi (o un telefono e un emulatore), ciascuno con il
+proprio `adb reverse`.
+
+## Test del backend
+
+Test di integrazione (runner integrato di Node, nessuna dipendenza in più):
+chiamano le API vere e, per alcuni controlli, leggono direttamente MySQL sulla
+porta 3306 esposta da Docker.
 
 ```sh
-bundle exec pod install
+cd backend
+npm install      # solo la prima volta: installa le dipendenze in locale
+npm test         # con i container del passo 1 attivi
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Coprono login, middleware di autenticazione, scadenza e revoca delle sessioni
+e l'isolamento tra due utenti reali: Bob non può vedere, rinominare,
+modificare né eliminare le playlist di Alice, e viceversa. I test creano
+playlist e sessioni temporanee e le cancellano alla fine; i dati del seed non
+vengono modificati.
