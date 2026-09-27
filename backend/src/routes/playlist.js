@@ -1,15 +1,16 @@
 const express = require('express');
 
 const pool = require('../config/database');
-const ID_UTENTE_FITTIZIO = require('../config/utenteFittizio');
 
 const router = express.Router();
 
+// Tutte le route di questo file passano da richiediAutenticazione (montato in
+// app.js), che imposta req.utente.id a partire dalla sessione.
+//
 // Verifica che la playlist esista E appartenga all'utente: questo controllo
-// (utente_id = ?) è già il meccanismo di isolamento tra utenti. Quando lo
-// step Autenticazione sostituirà ID_UTENTE_FITTIZIO con l'id preso dal JWT,
-// nessun'altra modifica sarà necessaria per impedire a un utente di vedere o
-// modificare le playlist di un altro.
+// (utente_id = ?) è il meccanismo di isolamento tra utenti. Una playlist di un
+// altro utente risponde 404 come una inesistente, così non si rivela nemmeno
+// che esiste.
 async function trovaPlaylistDiUtente(playlistId, utenteId) {
     const [righe] = await pool.query(
         'SELECT id, nome FROM playlist WHERE id = ? AND utente_id = ?',
@@ -22,14 +23,14 @@ async function trovaPlaylistDiUtente(playlistId, utenteId) {
 async function elencaPlaylist(req, res) {
     const [righe] = await pool.query(
         'SELECT id, nome FROM playlist WHERE utente_id = ? ORDER BY id',
-        [ID_UTENTE_FITTIZIO],
+        [req.utente.id],
     );
 
     res.json(righe);
 }
 
 async function creaPlaylist(req, res) {
-    const { nome } = req.body;
+    const { nome } = req.body ?? {};
 
     if (!nome) {
         res.status(400).json({ messaggio: 'nome obbligatorio' });
@@ -38,7 +39,7 @@ async function creaPlaylist(req, res) {
 
     const [risultato] = await pool.query(
         'INSERT INTO playlist (nome, utente_id) VALUES (?, ?)',
-        [nome, ID_UTENTE_FITTIZIO],
+        [nome, req.utente.id],
     );
 
     res.status(201).json({ id: risultato.insertId, nome });
@@ -47,7 +48,7 @@ async function creaPlaylist(req, res) {
 async function dettaglioPlaylist(req, res) {
     const { id } = req.params;
 
-    const playlist = await trovaPlaylistDiUtente(id, ID_UTENTE_FITTIZIO);
+    const playlist = await trovaPlaylistDiUtente(id, req.utente.id);
 
     if (!playlist) {
         res.status(404).json({ messaggio: 'Playlist non trovata' });
@@ -69,21 +70,24 @@ async function dettaglioPlaylist(req, res) {
 
 async function rinominaPlaylist(req, res) {
     const { id } = req.params;
-    const { nome } = req.body;
+    const { nome } = req.body ?? {};
 
     if (!nome) {
         res.status(400).json({ messaggio: 'nome obbligatorio' });
         return;
     }
 
-    const playlist = await trovaPlaylistDiUtente(id, ID_UTENTE_FITTIZIO);
+    const playlist = await trovaPlaylistDiUtente(id, req.utente.id);
 
     if (!playlist) {
         res.status(404).json({ messaggio: 'Playlist non trovata' });
         return;
     }
 
-    await pool.query('UPDATE playlist SET nome = ? WHERE id = ?', [nome, id]);
+    await pool.query(
+        'UPDATE playlist SET nome = ? WHERE id = ? AND utente_id = ?',
+        [nome, id, req.utente.id],
+    );
 
     res.json({ id: playlist.id, nome });
 }
@@ -91,28 +95,31 @@ async function rinominaPlaylist(req, res) {
 async function eliminaPlaylist(req, res) {
     const { id } = req.params;
 
-    const playlist = await trovaPlaylistDiUtente(id, ID_UTENTE_FITTIZIO);
+    const playlist = await trovaPlaylistDiUtente(id, req.utente.id);
 
     if (!playlist) {
         res.status(404).json({ messaggio: 'Playlist non trovata' });
         return;
     }
 
-    await pool.query('DELETE FROM playlist WHERE id = ?', [id]);
+    await pool.query('DELETE FROM playlist WHERE id = ? AND utente_id = ?', [
+        id,
+        req.utente.id,
+    ]);
 
     res.json({ messaggio: 'Playlist eliminata' });
 }
 
 async function aggiungiBrano(req, res) {
     const { id } = req.params;
-    const { branoId } = req.body;
+    const { branoId } = req.body ?? {};
 
     if (!branoId) {
         res.status(400).json({ messaggio: 'branoId obbligatorio' });
         return;
     }
 
-    const playlist = await trovaPlaylistDiUtente(id, ID_UTENTE_FITTIZIO);
+    const playlist = await trovaPlaylistDiUtente(id, req.utente.id);
 
     if (!playlist) {
         res.status(404).json({ messaggio: 'Playlist non trovata' });
@@ -130,7 +137,7 @@ async function aggiungiBrano(req, res) {
 async function rimuoviBrano(req, res) {
     const { id, branoId } = req.params;
 
-    const playlist = await trovaPlaylistDiUtente(id, ID_UTENTE_FITTIZIO);
+    const playlist = await trovaPlaylistDiUtente(id, req.utente.id);
 
     if (!playlist) {
         res.status(404).json({ messaggio: 'Playlist non trovata' });
@@ -145,12 +152,13 @@ async function rimuoviBrano(req, res) {
     res.json({ messaggio: 'Brano rimosso dalla playlist' });
 }
 
-router.get('/playlist', elencaPlaylist);
-router.post('/playlist', creaPlaylist);
-router.get('/playlist/:id', dettaglioPlaylist);
-router.put('/playlist/:id', rinominaPlaylist);
-router.delete('/playlist/:id', eliminaPlaylist);
-router.post('/playlist/:id/brani', aggiungiBrano);
-router.delete('/playlist/:id/brani/:branoId', rimuoviBrano);
+// Percorsi relativi: il router è montato su /api/playlist in app.js.
+router.get('/', elencaPlaylist);
+router.post('/', creaPlaylist);
+router.get('/:id', dettaglioPlaylist);
+router.put('/:id', rinominaPlaylist);
+router.delete('/:id', eliminaPlaylist);
+router.post('/:id/brani', aggiungiBrano);
+router.delete('/:id/brani/:branoId', rimuoviBrano);
 
 module.exports = router;

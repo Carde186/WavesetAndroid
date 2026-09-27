@@ -1,9 +1,12 @@
--- Utente minimale: serve solo da base per la Playlist in questo step.
--- Email, password e ruolo arrivano nello step "Autenticazione", che estenderà
--- questa tabella invece di sostituirla.
+-- password_hash è un hash bcrypt (formato "$2b$12$...", 60 caratteri): la
+-- password in chiaro non viene mai salvata. Le sessioni sono in
+-- 07_sessioni_schema.sql.
 CREATE TABLE utente (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(200) NOT NULL
+    nome VARCHAR(200) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash CHAR(60) NOT NULL,
+    ruolo ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE playlist (
