@@ -10,4 +10,7 @@ export const TOKEN = {
     testoPrimario: '#F5F5F7',
     testoSecondario: '#9CA3AF',
     bordo: '#2A2A33',
+    // Azioni distruttive (cestino): red-400 di Tailwind, non è un token di
+    // CLAUDE.md (la tabella non definisce un colore di errore/pericolo).
+    pericolo: '#F87171',
 } as const;

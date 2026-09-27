@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react-native';
 
 import { TOKEN } from '../tema/token';
 
-type Variante = 'primario' | 'secondario' | 'testo';
+type Variante = 'primario' | 'secondario' | 'testo' | 'pericolo';
 
 type Props = {
     etichetta: string;
@@ -19,12 +19,14 @@ const CLASSI_CONTENITORE: Record<Variante, string> = {
     primario: 'bg-accento-scuro px-5',
     secondario: 'border border-bordo bg-superficie px-5',
     testo: 'px-3',
+    pericolo: 'px-3',
 };
 
 const CLASSI_ETICHETTA: Record<Variante, string> = {
     primario: 'text-testo-primario',
     secondario: 'text-testo-primario',
     testo: 'text-accento',
+    pericolo: 'text-red-400',
 };
 
 // L'icona Lucide non riceve className (non è un componente nativo registrato
@@ -33,6 +35,7 @@ const COLORE_ICONA: Record<Variante, string> = {
     primario: TOKEN.testoPrimario,
     secondario: TOKEN.testoPrimario,
     testo: TOKEN.accento,
+    pericolo: TOKEN.pericolo,
 };
 
 function Bottone({
