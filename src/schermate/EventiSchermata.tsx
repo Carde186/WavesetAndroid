@@ -1,27 +1,18 @@
-import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text, View } from 'react-native';
 
+// Segnaposto: il contenuto vero arriva con lo step dedicato (CLAUDE.md,
+// "Stato di avanzamento").
 function EventiSchermata() {
-    const tema = useTheme();
-
     return (
-        <View
-            style={[
-                stili.contenitore,
-                { backgroundColor: tema.colors.background },
-            ]}
-        >
-            <Text variant="headlineMedium">Eventi</Text>
+        <View className="flex-1 items-center justify-center bg-sfondo">
+            <Text
+                accessibilityRole="header"
+                className="text-2xl font-semibold text-testo-primario"
+            >
+                Eventi
+            </Text>
         </View>
     );
 }
-
-const stili = StyleSheet.create({
-    contenitore: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-});
 
 export default EventiSchermata;

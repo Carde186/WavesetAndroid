@@ -426,7 +426,8 @@ procede, spuntando cosa è fatto:
 - [x] Schermate di catalogo (Home, Dettaglio artista/brano/album)
 - [x] Playlist (multiple per utente, non una sola di default)
 - [x] Migrazione stile: React Native Paper → NativeWind + identità visiva
-      (vedi sezione dedicata) — completata su Home, header, tab bar
+      (vedi sezione dedicata) — completata su tutte le schermate,
+      react-native-paper disinstallato
 - [x] Logo blob+wordmark (componente unico, top bar + schermata di intro)
 - [ ] Autenticazione (JWT contro il backend, ruoli USER/ADMIN — includere
       test di isolamento tra due utenti reali, non solo verifica login)
