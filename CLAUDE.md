@@ -74,6 +74,8 @@ il proprio `docker-compose.yml`.
   anche su Android per coerenza e riuso)
 - **Pannello admin**: non è un'app separata — sono schermate dentro la stessa
   app React, dietro controllo del ruolo ADMIN
+- **Autenticazione**: sessioni lato server su tabella MySQL (non JWT — vedi
+  sezione dedicata "Autenticazione")
 
 ## Identità visiva
 
@@ -86,7 +88,8 @@ esatti:
 |---|---|---|
 | Sfondo | `#0B0B0F` | sfondo principale delle schermate |
 | Superficie | `#16161D` | card, righe, elementi rilevati dallo sfondo |
-| Accento primario | `#8B5CF6` | bottoni primari, tab attiva, link, elementi selezionati |
+| Accento primario | `#8B5CF6` | tab attiva, link, icone |
+| Accento scuro | `#7C3AED` | sfondo bottone primario, pillola selezionata — introdotto perché `#8B5CF6` come sfondo con testo sopra non raggiunge 4.5:1 (contrasto WCAG AA per testo piccolo); `#8B5CF6` resta corretto per tab/link/icone perché lì non è sfondo di testo |
 | Testo primario | `#F5F5F7` | titoli, testo principale |
 | Testo secondario | `#9CA3AF` | metadati (durata, data, sottotitoli) |
 | Bordi/divisori | `#2A2A33` | separatori, contorni card |
@@ -223,7 +226,7 @@ Modifiche rispetto allo spec iniziale, decise durante la progettazione:
 | **Album** (nuova) | `titolo`, `data_pubblicazione`, `artista_id` (N:1 Artist), `copertina_url` (da `album.images[0].url` su Spotify — anche i singoli su Spotify hanno un "album" wrapper con copertina, quindi il campo è quasi sempre popolabile). `Song.album_id` nullable — un brano può non appartenere a nessun album. `Song.data_pubblicazione` è un campo a sé, indipendente da quella dell'album. |
 | **Song — immagine** | Nessun campo immagine proprio: eredita `copertina_url` dal suo Album quando esiste; se `album_id` è nullo (brano inserito a mano senza album), fallback sull'`immagine_url` dell'Artist lato frontend — non duplicare il dato nel DB. |
 | **AlbumReview** (nuova) | Gemella di Review ma per Album (stessa struttura, stesso vincolo di unicità). Entità separata per non modificare Review, già scritta e testata nel backend Spring. |
-| **Event** | Aggiunti `latitudine`/`longitudine` (numerici). Inseriti a mano dall'ADMIN per gli eventi non importati da Ticketmaster — vedi sezione Ticketmaster più sotto per l'automazione. |
+| **Event** | Aggiunti `latitudine`/`longitudine` (numerici). Inseriti a mano dall'ADMIN per gli eventi non importati da Ticketmaster — vedi sezione Ticketmaster più sotto per l'automazione. Aggiunto anche `ora_evento` (TIME, nullable) separato da `data_evento` (DATE) — mai convertito da/a UTC, è sempre "l'ora locale del locale", non va interpretato rispetto al fuso del device che la visualizza. |
 | **Event↔Artist (lineup)** | Resta N:N pura. Nessun campo "ruolo" (headliner/opening act) in v1 — rimandato al futuro. |
 | **User↔Artist (follow)** | Join implicito, nessun attributo aggiuntivo. |
 
@@ -304,6 +307,36 @@ l'AI propone, non decide da sola.
 - **Accedi per continuare**: mostrata su Playlist/Profilo quando l'utente non
   è loggato
 - **Tab bar**: Home / Eventi / Playlist / Profilo, con icone
+
+## Autenticazione
+
+**Niente JWT.** Sessioni lato server, stesso modello di Django (revoca
+istantanea, stato vero sul server), ma trasportate come bearer token
+nell'header `Authorization` invece che come cookie — React Native non ha
+la gestione automatica dei cookie di un browser, quindi il token va
+salvato in storage sicuro sul device e allegato a mano a ogni richiesta.
+
+**Tabella `sessioni`**: `utente_id`, `hash_token` (MAI il token in chiaro),
+`scadenza`, `device_id`.
+
+- **Generazione token**: casuale (`crypto.randomBytes`), consegnato al
+  client una sola volta al login — da quel momento esiste solo come hash
+  nel DB.
+- **Hash**: SHA-256 (veloce), NON bcrypt. Bcrypt è lento apposta per
+  proteggere segreti a bassa entropia come le password; un token casuale a
+  256 bit non ne ha bisogno, e bcrypt costerebbe 250-300ms in più su OGNI
+  richiesta autenticata, non solo al login. Bcrypt resta riservato alle
+  password.
+- **Confronto**: `crypto.timingSafeEqual` sull'hash calcolato, non `===`.
+- **`device_id`**: UUID generato dal client al primo avvio dell'app,
+  salvato in storage sicuro sul device, inviato come header a ogni
+  richiesta — identifica "questo telefono" per permettere il logout
+  mirato.
+- **Logout**: elimina la riga della sessione corrente. Endpoint aggiuntivo
+  "esci da tutti i dispositivi": elimina tutte le righe per `utente_id`.
+
+Test di isolamento tra due utenti reali sulle playlist (non solo verifica
+del login) resta un requisito esplicito di questo step.
 
 ## Ricerca
 Va costruita per davvero: schermata con risultati live (debounce ~300ms),
@@ -426,11 +459,11 @@ procede, spuntando cosa è fatto:
 - [x] Schermate di catalogo (Home, Dettaglio artista/brano/album)
 - [x] Playlist (multiple per utente, non una sola di default)
 - [x] Migrazione stile: React Native Paper → NativeWind + identità visiva
-      (vedi sezione dedicata) — completata su tutte le schermate,
-      react-native-paper disinstallato
+      (vedi sezione dedicata) — completata su Home, header, tab bar
 - [x] Logo blob+wordmark (componente unico, top bar + schermata di intro)
-- [ ] Autenticazione (JWT contro il backend, ruoli USER/ADMIN — includere
-      test di isolamento tra due utenti reali, non solo verifica login)
+- [x] Autenticazione (sessioni lato server su tabella MySQL, ruoli
+      USER/ADMIN — vedi sezione dedicata "Autenticazione"; test di
+      isolamento tra due utenti reali verificati, sia automatici che a mano)
 - [ ] Ricerca
 - [ ] Eventi + mappa (Google Maps, marker, Dettaglio evento)
 - [ ] Integrazione Ticketmaster (import + coda di revisione)

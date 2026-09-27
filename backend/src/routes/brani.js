@@ -1,6 +1,7 @@
 const express = require('express');
 
 const pool = require('../config/database');
+const formattaBrano = require('../utilita/formattaBrano');
 
 const router = express.Router();
 
@@ -47,27 +48,6 @@ async function dettaglioBrano(req, res) {
     }
 
     res.json(formattaBrano(righe[0]));
-}
-
-function formattaBrano(brano) {
-    return {
-        id: brano.id,
-        titolo: brano.titolo,
-        dataPubblicazione: brano.data_pubblicazione,
-        urlSpotify: brano.url_spotify,
-        artista: {
-            id: brano.artista_id,
-            nome: brano.artista_nome,
-            immagineUrl: brano.artista_immagine_url,
-        },
-        album: brano.album_id
-            ? {
-                  id: brano.album_id,
-                  titolo: brano.album_titolo,
-                  copertinaUrl: brano.album_copertina_url,
-              }
-            : null,
-    };
 }
 
 router.get('/brani/recenti', elencaRecenti);

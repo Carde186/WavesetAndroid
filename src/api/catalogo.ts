@@ -5,6 +5,7 @@ import type {
     ArtistaSintetico,
     BranoDettaglio,
     Genere,
+    RisultatiRicerca,
 } from './tipi';
 
 export function recuperaGeneri(): Promise<Genere[]> {
@@ -32,4 +33,8 @@ export function recuperaBraniRecenti(): Promise<BranoDettaglio[]> {
 
 export function recuperaAlbum(id: number): Promise<AlbumDettaglio> {
     return richiediGet(`/album/${id}`);
+}
+
+export function cercaNelCatalogo(testo: string): Promise<RisultatiRicerca> {
+    return richiediGet(`/ricerca?q=${encodeURIComponent(testo)}`);
 }

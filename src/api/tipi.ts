@@ -103,3 +103,8 @@ export type Utente = {
     email: string;
     ruolo: 'USER' | 'ADMIN';
 };
+
+export type RisultatiRicerca = {
+    artisti: ArtistaSintetico[];
+    brani: BranoDettaglio[];
+};

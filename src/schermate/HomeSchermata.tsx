@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    BackHandler,
+    Keyboard,
+    ScrollView,
+    Text,
+    View,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
@@ -8,13 +16,22 @@ import {
     recuperaGeneri,
 } from '../api/catalogo';
 import CartaNovita from '../componenti/CartaNovita';
+import OverlayRicerca from '../componenti/OverlayRicerca';
 import Pillola from '../componenti/Pillola';
 import RigaElenco from '../componenti/RigaElenco';
 import TitoloSezione from '../componenti/TitoloSezione';
 import type { ArtistaSintetico, BranoDettaglio, Genere } from '../api/tipi';
+import { mostraCampoRicercaHeader } from '../navigazione/CampoRicercaHeader';
+import { useRicercaHome } from '../navigazione/ContestoRicercaHome';
+import LogoHeaderLeft from '../navigazione/LogoHeaderLeft';
 import type { ParametriStackHome } from '../navigazione/tipi';
 
 type Props = NativeStackScreenProps<ParametriStackHome, 'Home'>;
+
+// A ricerca aperta il campo prende anche il posto del logo.
+function NienteHeaderLeft() {
+    return null;
+}
 
 function HomeSchermata({ navigation }: Props) {
     const [braniRecenti, setBraniRecenti] = useState<BranoDettaglio[]>([]);
@@ -25,6 +42,43 @@ function HomeSchermata({ navigation }: Props) {
     const [artisti, setArtisti] = useState<ArtistaSintetico[]>([]);
     const [inCaricamento, setInCaricamento] = useState(true);
     const [errore, setErrore] = useState<string | null>(null);
+    const { aperta, testo, chiudi } = useRicercaHome();
+
+    // L'header cambia solo quando la ricerca si apre o si chiude, mai a ogni
+    // tasto: i componenti passati sono di modulo e leggono il testo dal
+    // contesto. Se si ripassasse qui una funzione nuova a ogni render, React
+    // rimonterebbe il campo e la tastiera si chiuderebbe a ogni lettera.
+    // A ricerca chiusa headerTitle torna quello nativo ("Home").
+    useLayoutEffect(() => {
+        navigation.setOptions(
+            aperta
+                ? {
+                      headerLeft: NienteHeaderLeft,
+                      headerTitle: mostraCampoRicercaHeader,
+                  }
+                : { headerLeft: LogoHeaderLeft, headerTitle: undefined },
+        );
+    }, [navigation, aperta]);
+
+    // Con la ricerca aperta, il tasto Indietro di Android la chiude invece di
+    // uscire dall'app. Attivo solo mentre la Home è la schermata visibile.
+    useFocusEffect(
+        useCallback(() => {
+            if (!aperta) {
+                return;
+            }
+
+            const sottoscrizione = BackHandler.addEventListener(
+                'hardwareBackPress',
+                () => {
+                    chiudi();
+                    return true;
+                },
+            );
+
+            return () => sottoscrizione.remove();
+        }, [aperta, chiudi]),
+    );
 
     useEffect(() => {
         // Sezione secondaria: se fallisce, resta semplicemente vuota
@@ -56,71 +110,94 @@ function HomeSchermata({ navigation }: Props) {
     }
 
     return (
-        <ScrollView className="flex-1 bg-sfondo">
-            {braniRecenti.length > 0 && (
-                <>
-                    <TitoloSezione>Novità</TitoloSezione>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        className="px-4 py-3"
-                    >
-                        {braniRecenti.map(brano => (
-                            <CartaNovita
-                                key={brano.id}
-                                titolo={brano.titolo}
-                                artistaNome={brano.artista.nome}
-                                immagineUrl={
-                                    brano.album?.copertinaUrl ??
-                                    brano.artista.immagineUrl
-                                }
+        <View className="flex-1 bg-sfondo">
+            <ScrollView className="flex-1">
+                {braniRecenti.length > 0 && (
+                    <>
+                        <TitoloSezione>Novità</TitoloSezione>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            className="px-4 py-3"
+                        >
+                            {braniRecenti.map(brano => (
+                                <CartaNovita
+                                    key={brano.id}
+                                    titolo={brano.titolo}
+                                    artistaNome={brano.artista.nome}
+                                    immagineUrl={
+                                        brano.album?.copertinaUrl ??
+                                        brano.artista.immagineUrl
+                                    }
+                                    onPress={() =>
+                                        navigation.navigate('DettaglioBrano', {
+                                            branoId: brano.id,
+                                        })
+                                    }
+                                />
+                            ))}
+                        </ScrollView>
+                    </>
+                )}
+
+                <TitoloSezione>Esplora per genere</TitoloSezione>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View className="flex-row gap-2 px-4 py-3">
+                        {generi.map(genere => (
+                            <Pillola
+                                key={genere.id}
+                                etichetta={genere.nome}
+                                selezionato={genereSelezionato === genere.id}
+                                onPress={() => selezionaGenere(genere.id)}
+                            />
+                        ))}
+                    </View>
+                </ScrollView>
+
+                {errore && <Text className="mx-4 text-red-400">{errore}</Text>}
+
+                {inCaricamento ? (
+                    <ActivityIndicator className="mt-6 text-accento" />
+                ) : (
+                    <View>
+                        {artisti.map(artista => (
+                            <RigaElenco
+                                key={artista.id}
+                                titolo={artista.nome}
+                                immagineUrl={artista.immagine_url}
                                 onPress={() =>
-                                    navigation.navigate('DettaglioBrano', {
-                                        branoId: brano.id,
+                                    navigation.navigate('DettaglioArtista', {
+                                        artistaId: artista.id,
                                     })
                                 }
                             />
                         ))}
-                    </ScrollView>
-                </>
-            )}
-
-            <TitoloSezione>Esplora per genere</TitoloSezione>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-2 px-4 py-3">
-                    {generi.map(genere => (
-                        <Pillola
-                            key={genere.id}
-                            etichetta={genere.nome}
-                            selezionato={genereSelezionato === genere.id}
-                            onPress={() => selezionaGenere(genere.id)}
-                        />
-                    ))}
-                </View>
+                    </View>
+                )}
             </ScrollView>
 
-            {errore && <Text className="mx-4 text-red-400">{errore}</Text>}
-
-            {inCaricamento ? (
-                <ActivityIndicator className="mt-6 text-accento" />
-            ) : (
-                <View>
-                    {artisti.map(artista => (
-                        <RigaElenco
-                            key={artista.id}
-                            titolo={artista.nome}
-                            immagineUrl={artista.immagine_url}
-                            onPress={() =>
-                                navigation.navigate('DettaglioArtista', {
-                                    artistaId: artista.id,
-                                })
-                            }
-                        />
-                    ))}
-                </View>
+            {/* La tastiera si chiude aprendo un dettaglio: al ritorno la
+                ricerca è ancora aperta con i risultati, ma senza tastiera. */}
+            {aperta && (
+                <OverlayRicerca
+                    testo={testo}
+                    onChiudi={chiudi}
+                    onApriArtista={artista => {
+                        Keyboard.dismiss();
+                        navigation.navigate('DettaglioArtista', {
+                            artistaId: artista.id,
+                        });
+                    }}
+                    onApriBrano={brano => {
+                        Keyboard.dismiss();
+                        navigation.navigate('DettaglioBrano', {
+                            branoId: brano.id,
+                        });
+                    }}
+                />
             )}
-        </ScrollView>
+        </View>
     );
 }
 
