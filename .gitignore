@@ -78,3 +78,7 @@ yarn-error.log
 
 # Backend (Node/Express)
 backend/.env
+
+# Chiavi dell'app (es. GOOGLE_MAPS_API_KEY, letta da Gradle): mai nel repo.
+# Solo .env.example, con i nomi delle variabili e senza valori, va committato.
+/.env
