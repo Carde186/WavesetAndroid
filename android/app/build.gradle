@@ -72,6 +72,27 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Chiave di Google Maps (Maps SDK for Android). La legge l'SDK nativo dal
+// manifest, non il JavaScript: la si prende dal .env della radice del repo
+// (escluso da git, vedi .env.example) o, in alternativa, da una variabile
+// d'ambiente con lo stesso nome, e la si inietta nel manifest come
+// placeholder. Senza chiave la build non fallisce: la mappa resta grigia.
+def leggiChiaveGoogleMaps() {
+    def fileEnv = rootProject.file("../.env")
+    if (fileEnv.exists()) {
+        def riga = fileEnv.readLines().find { it.trim().startsWith("GOOGLE_MAPS_API_KEY=") }
+        if (riga != null) {
+            return riga.substring(riga.indexOf("=") + 1).trim()
+        }
+    }
+    return System.getenv("GOOGLE_MAPS_API_KEY") ?: ""
+}
+
+def chiaveGoogleMaps = leggiChiaveGoogleMaps()
+if (chiaveGoogleMaps.isEmpty()) {
+    logger.warn("GOOGLE_MAPS_API_KEY non trovata nel .env della radice: la mappa resterà grigia.")
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -84,6 +105,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders += [GOOGLE_MAPS_API_KEY: chiaveGoogleMaps]
     }
     signingConfigs {
         debug {

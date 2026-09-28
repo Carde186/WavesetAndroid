@@ -1,27 +1,46 @@
 const express = require('express');
 
+const autenticazioneFacoltativa = require('../autenticazione/autenticazioneFacoltativa');
+const richiediAutenticazione = require('../autenticazione/richiediAutenticazione');
 const pool = require('../config/database');
 
 const router = express.Router();
 
+// "Esplora per genere". Ordine per numero di follower (l'unico dato di
+// popolarità disponibile), poi per nome. Con escludi_seguiti=1 e una
+// sessione, gli artisti già seguiti non compaiono: la sezione diventa un
+// elenco di suggerimenti. Da anonimi il parametro non esclude nulla.
 async function elencaArtisti(req, res) {
-    const { genere_id: genereId } = req.query;
+    const { genere_id: genereId, escludi_seguiti: escludiSeguiti } = req.query;
+
+    const condizioni = [];
+    const parametri = [];
 
     if (genereId) {
-        const [righe] = await pool.query(
-            `SELECT DISTINCT a.id, a.nome, a.immagine_url
-             FROM artista a
-             INNER JOIN artista_genere ag ON ag.artista_id = a.id
-             WHERE ag.genere_id = ?
-             ORDER BY a.nome`,
-            [genereId],
+        condizioni.push(
+            'a.id IN (SELECT artista_id FROM artista_genere WHERE genere_id = ?)',
         );
-        res.json(righe);
-        return;
+        parametri.push(genereId);
     }
 
+    if (escludiSeguiti === '1' && req.utente) {
+        condizioni.push(
+            'a.id NOT IN (SELECT artista_id FROM utente_artista WHERE utente_id = ?)',
+        );
+        parametri.push(req.utente.id);
+    }
+
+    const where =
+        condizioni.length > 0 ? `WHERE ${condizioni.join(' AND ')}` : '';
+
     const [righe] = await pool.query(
-        'SELECT id, nome, immagine_url FROM artista ORDER BY nome',
+        `SELECT a.id, a.nome, a.immagine_url
+         FROM artista a
+         LEFT JOIN utente_artista follower ON follower.artista_id = a.id
+         ${where}
+         GROUP BY a.id, a.nome, a.immagine_url
+         ORDER BY COUNT(follower.utente_id) DESC, a.nome`,
+        parametri,
     );
     res.json(righe);
 }
@@ -73,10 +92,58 @@ async function dettaglioArtista(req, res) {
         [id],
     );
 
-    res.json({ ...righeArtista[0], generi, brani, album, eventi });
+    // "seguito" è sempre presente (false da anonimi): l'app non deve
+    // distinguere tra campo assente e artista non seguito.
+    let seguito = false;
+    if (req.utente) {
+        const [righeFollow] = await pool.query(
+            'SELECT 1 FROM utente_artista WHERE utente_id = ? AND artista_id = ?',
+            [req.utente.id, id],
+        );
+        seguito = righeFollow.length > 0;
+    }
+
+    res.json({ ...righeArtista[0], generi, brani, album, eventi, seguito });
 }
 
-router.get('/artisti', elencaArtisti);
-router.get('/artisti/:id', dettaglioArtista);
+async function esisteArtista(id) {
+    const [righe] = await pool.query('SELECT 1 FROM artista WHERE id = ?', [
+        id,
+    ]);
+    return righe.length > 0;
+}
+
+// PUT e DELETE (non POST) perché sono idempotenti: seguire due volte, o
+// smettere di seguire chi non si segue, lascia lo stesso stato e risponde
+// allo stesso modo. Così un doppio tap o un retry di rete non danno errore.
+async function seguiArtista(req, res) {
+    const { id } = req.params;
+
+    if (!(await esisteArtista(id))) {
+        res.status(404).json({ messaggio: 'Artista non trovato' });
+        return;
+    }
+
+    await pool.query(
+        'INSERT IGNORE INTO utente_artista (utente_id, artista_id) VALUES (?, ?)',
+        [req.utente.id, id],
+    );
+
+    res.status(204).end();
+}
+
+async function smettiDiSeguire(req, res) {
+    await pool.query(
+        'DELETE FROM utente_artista WHERE utente_id = ? AND artista_id = ?',
+        [req.utente.id, req.params.id],
+    );
+
+    res.status(204).end();
+}
+
+router.get('/artisti', autenticazioneFacoltativa, elencaArtisti);
+router.get('/artisti/:id', autenticazioneFacoltativa, dettaglioArtista);
+router.put('/artisti/:id/segui', richiediAutenticazione, seguiArtista);
+router.delete('/artisti/:id/segui', richiediAutenticazione, smettiDiSeguire);
 
 module.exports = router;

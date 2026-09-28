@@ -5,6 +5,7 @@ import type {
     ArtistaSintetico,
     BranoDettaglio,
     Genere,
+    Novita,
     RisultatiRicerca,
 } from './tipi';
 
@@ -12,10 +13,17 @@ export function recuperaGeneri(): Promise<Genere[]> {
     return richiediGet('/generi');
 }
 
+// escludiSeguiti: per un utente loggato, niente artisti che segue già
+// (suggerimenti di "Esplora per genere"). Da anonimi non cambia nulla.
 export function recuperaArtisti(
     genereId?: number,
+    escludiSeguiti = false,
 ): Promise<ArtistaSintetico[]> {
-    const filtro = genereId ? `?genere_id=${genereId}` : '';
+    const parametri = [
+        genereId ? `genere_id=${genereId}` : '',
+        escludiSeguiti ? 'escludi_seguiti=1' : '',
+    ].filter(Boolean);
+    const filtro = parametri.length > 0 ? `?${parametri.join('&')}` : '';
     return richiediGet(`/artisti${filtro}`);
 }
 
@@ -27,7 +35,7 @@ export function recuperaBrano(id: number): Promise<BranoDettaglio> {
     return richiediGet(`/brani/${id}`);
 }
 
-export function recuperaBraniRecenti(): Promise<BranoDettaglio[]> {
+export function recuperaNovita(): Promise<Novita> {
     return richiediGet('/brani/recenti');
 }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 import {
     ActivityIndicator,
     BackHandler,
@@ -12,9 +12,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
     recuperaArtisti,
-    recuperaBraniRecenti,
     recuperaGeneri,
+    recuperaNovita,
 } from '../api/catalogo';
+import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import CartaNovita from '../componenti/CartaNovita';
 import OverlayRicerca from '../componenti/OverlayRicerca';
 import Pillola from '../componenti/Pillola';
@@ -34,7 +35,9 @@ function NienteHeaderLeft() {
 }
 
 function HomeSchermata({ navigation }: Props) {
+    const { utente } = useAutenticazione();
     const [braniRecenti, setBraniRecenti] = useState<BranoDettaglio[]>([]);
+    const [novitaPersonalizzate, setNovitaPersonalizzate] = useState(false);
     const [generi, setGeneri] = useState<Genere[]>([]);
     const [genereSelezionato, setGenereSelezionato] = useState<number | null>(
         null,
@@ -80,30 +83,33 @@ function HomeSchermata({ navigation }: Props) {
         }, [aperta, chiudi]),
     );
 
-    useEffect(() => {
-        // Sezione secondaria: se fallisce, resta semplicemente vuota
-        // (nascosta) invece di mostrare un errore che competerebbe con il
-        // contenuto principale della Home.
-        recuperaBraniRecenti()
-            .then(setBraniRecenti)
-            .catch(() => {});
-    }, []);
+    // Unico caricamento, rieseguito quando la Home torna visibile (un follow
+    // fatto in un dettaglio cambia feed e suggerimenti), quando cambia il
+    // genere e al login/logout (la callback cambia con `utente`).
+    useFocusEffect(
+        useCallback(() => {
+            // Sezione secondaria: se fallisce, resta semplicemente vuota
+            // (nascosta) invece di mostrare un errore che competerebbe con
+            // il contenuto principale della Home.
+            recuperaNovita()
+                .then(novita => {
+                    setBraniRecenti(novita.brani);
+                    setNovitaPersonalizzate(novita.personalizzato);
+                })
+                .catch(() => {});
 
-    useEffect(() => {
-        recuperaGeneri()
-            .then(setGeneri)
-            .catch(() => setErrore('Impossibile caricare i generi'));
-    }, []);
+            setErrore(null);
+            recuperaGeneri()
+                .then(setGeneri)
+                .catch(() => setErrore('Impossibile caricare i generi'));
 
-    useEffect(() => {
-        setInCaricamento(true);
-        setErrore(null);
-
-        recuperaArtisti(genereSelezionato ?? undefined)
-            .then(setArtisti)
-            .catch(() => setErrore('Impossibile caricare gli artisti'))
-            .finally(() => setInCaricamento(false));
-    }, [genereSelezionato]);
+            setInCaricamento(true);
+            recuperaArtisti(genereSelezionato ?? undefined, utente !== null)
+                .then(setArtisti)
+                .catch(() => setErrore('Impossibile caricare gli artisti'))
+                .finally(() => setInCaricamento(false));
+        }, [genereSelezionato, utente]),
+    );
 
     function selezionaGenere(id: number) {
         setGenereSelezionato(prec => (prec === id ? null : id));
@@ -114,7 +120,11 @@ function HomeSchermata({ navigation }: Props) {
             <ScrollView className="flex-1">
                 {braniRecenti.length > 0 && (
                     <>
-                        <TitoloSezione>Novità</TitoloSezione>
+                        <TitoloSezione>
+                            {novitaPersonalizzate
+                                ? 'Novità dagli artisti che segui'
+                                : 'Ultime uscite'}
+                        </TitoloSezione>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -141,6 +151,11 @@ function HomeSchermata({ navigation }: Props) {
                 )}
 
                 <TitoloSezione>Esplora per genere</TitoloSezione>
+                {utente && (
+                    <Text className="mx-4 mt-1 text-sm text-testo-secondario">
+                        Artisti che non segui ancora
+                    </Text>
+                )}
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-2 px-4 py-3">
@@ -157,8 +172,17 @@ function HomeSchermata({ navigation }: Props) {
 
                 {errore && <Text className="mx-4 text-red-400">{errore}</Text>}
 
-                {inCaricamento ? (
+                {/* Lo spinner solo al primo caricamento: negli aggiornamenti
+                    (ritorno sulla Home, cambio genere) la lista resta
+                    visibile finché arriva quella nuova. */}
+                {inCaricamento && artisti.length === 0 ? (
                     <ActivityIndicator className="mt-6 text-accento" />
+                ) : !inCaricamento && artisti.length === 0 ? (
+                    <Text className="mx-4 mt-3 text-testo-secondario">
+                        {utente
+                            ? 'Segui già tutti gli artisti di questo genere'
+                            : 'Nessun artista in questo genere'}
+                    </Text>
                 ) : (
                     <View>
                         {artisti.map(artista => (

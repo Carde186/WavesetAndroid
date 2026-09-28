@@ -43,6 +43,8 @@ export type ArtistaDettaglio = {
     brani: BranoSintetico[];
     album: AlbumSintetico[];
     eventi: EventoSintetico[];
+    // Sempre false da anonimi.
+    seguito: boolean;
 };
 
 export type ArtistaRiferimento = {
@@ -102,6 +104,12 @@ export type Utente = {
     nome: string;
     email: string;
     ruolo: 'USER' | 'ADMIN';
+};
+
+export type Novita = {
+    // true: brani degli artisti seguiti; false: ultime uscite del catalogo.
+    personalizzato: boolean;
+    brani: BranoDettaglio[];
 };
 
 export type RisultatiRicerca = {

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ExternalLink, UserPlus } from 'lucide-react-native';
+import { ExternalLink, UserCheck, UserPlus } from 'lucide-react-native';
 
 import { recuperaArtista } from '../api/catalogo';
+import { seguiArtista, smettiDiSeguire } from '../api/follow';
 import type { ArtistaDettaglio, BranoSintetico } from '../api/tipi';
+import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import Avviso from '../componenti/Avviso';
 import Bottone from '../componenti/Bottone';
 import BottoneIcona from '../componenti/BottoneIcona';
@@ -19,6 +21,8 @@ type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioArtista'>;
 
 function DettaglioArtistaSchermata({ route, navigation }: Props) {
     const { artistaId } = route.params;
+    const { utente } = useAutenticazione();
+    const utenteId = utente?.id;
 
     const [artista, setArtista] = useState<ArtistaDettaglio | null>(null);
     const [inCaricamento, setInCaricamento] = useState(true);
@@ -33,7 +37,37 @@ function DettaglioArtistaSchermata({ route, navigation }: Props) {
             .then(setArtista)
             .catch(() => setErrore('Impossibile caricare l’artista'))
             .finally(() => setInCaricamento(false));
-    }, [artistaId]);
+        // Si ricarica anche al login/logout: "seguito" dipende da chi guarda.
+    }, [artistaId, utenteId]);
+
+    async function gestisciSegui() {
+        if (!utente || !artista) {
+            setMessaggioAvviso('Accedi per seguire gli artisti');
+            return;
+        }
+
+        // Aggiornamento ottimistico: il bottone cambia subito; se il backend
+        // fallisce si torna allo stato precedente e lo si dice.
+        const seguitoPrima = artista.seguito;
+        setArtista({ ...artista, seguito: !seguitoPrima });
+
+        try {
+            if (seguitoPrima) {
+                await smettiDiSeguire(artista.id);
+            } else {
+                await seguiArtista(artista.id);
+            }
+        } catch {
+            setArtista(prec =>
+                prec ? { ...prec, seguito: seguitoPrima } : prec,
+            );
+            setMessaggioAvviso(
+                seguitoPrima
+                    ? 'Impossibile smettere di seguire l’artista'
+                    : 'Impossibile seguire l’artista',
+            );
+        }
+    }
 
     if (inCaricamento) {
         return <StatoSchermata tipo="caricamento" />;
@@ -85,13 +119,20 @@ function DettaglioArtistaSchermata({ route, navigation }: Props) {
                 )}
 
                 <View className="mx-4 mt-4 flex-row">
-                    <Bottone
-                        etichetta="Segui"
-                        icona={UserPlus}
-                        onPress={() =>
-                            setMessaggioAvviso('Accedi per seguire gli artisti')
-                        }
-                    />
+                    {artista.seguito ? (
+                        <Bottone
+                            etichetta="Segui già"
+                            variante="secondario"
+                            icona={UserCheck}
+                            onPress={gestisciSegui}
+                        />
+                    ) : (
+                        <Bottone
+                            etichetta="Segui"
+                            icona={UserPlus}
+                            onPress={gestisciSegui}
+                        />
+                    )}
                 </View>
 
                 {artista.brani.length > 0 && (

@@ -356,9 +356,9 @@ permanente), **niente sync playlist**.
 
 **Google Maps** — Maps JavaScript API (web) / `react-native-maps` (mobile),
 marker personalizzati con logo artista. Usata per intero, senza versioni
-semplificate, sia su Fullstack che su Android. Richiede account di
-fatturazione Google Cloud (free tier: 10.000 caricamenti mappa/mese,
-ampiamente sufficiente).
+semplificate, sia su Fullstack che su Android. Chiave API già ottenuta
+(account Google Cloud con fatturazione attiva; free tier: 10.000
+caricamenti mappa/mese, ampiamente sufficiente).
 
 **Ticketmaster Discovery API** — unica fonte automatica per l'import eventi
 (niente Bandsintown, richiede partnership commerciale; niente TicketOne,
@@ -464,7 +464,7 @@ procede, spuntando cosa è fatto:
 - [x] Autenticazione (sessioni lato server su tabella MySQL, ruoli
       USER/ADMIN — vedi sezione dedicata "Autenticazione"; test di
       isolamento tra due utenti reali verificati, sia automatici che a mano)
-- [ ] Ricerca
+- [x] Ricerca
 - [ ] Eventi + mappa (Google Maps, marker, Dettaglio evento)
 - [ ] Integrazione Ticketmaster (import + coda di revisione)
 - [ ] Assistente AI per la coda di revisione (solo Fullstack)

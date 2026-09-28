@@ -84,11 +84,11 @@ export function richiediPost<T>(percorso: string, corpo?: unknown): Promise<T> {
     });
 }
 
-export function richiediPut<T>(percorso: string, corpo: unknown): Promise<T> {
+export function richiediPut<T>(percorso: string, corpo?: unknown): Promise<T> {
     return richiesta<T>(percorso, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(corpo),
+        body: corpo === undefined ? undefined : JSON.stringify(corpo),
     });
 }
 
