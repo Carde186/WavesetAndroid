@@ -23,9 +23,13 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
 });
 
-// Utenti del seed (backend/db/init/04_playlist_seed.sql).
-const ALICE = { email: 'alice@waveset.test', password: 'alice-waveset' };
-const BOB = { email: 'bob@waveset.test', password: 'bob-waveset' };
+// Utenti del seed riservati ai test automatici (04_playlist_seed.sql e
+// 09_follow_seed.sql): i test non usano mai Alice e Bob, che servono alle
+// prove a mano (il test di logout-tutti, per esempio, chiuderebbe le loro
+// sessioni sul telefono). UTENTE_A segue Nova Circuit (1) e Lucent Wave (3),
+// UTENTE_B nessuno.
+const UTENTE_A = { email: 'test-a@waveset.test', password: 'test-a-waveset' };
+const UTENTE_B = { email: 'test-b@waveset.test', password: 'test-b-waveset' };
 
 const deviceUsati = [];
 
@@ -83,8 +87,8 @@ async function chiudi() {
 module.exports = {
     URL_API,
     db,
-    ALICE,
-    BOB,
+    UTENTE_A,
+    UTENTE_B,
     nuovoDevice,
     chiama,
     accedi,

@@ -28,7 +28,24 @@ tornare ai dati iniziali, `docker compose down -v` e poi di nuovo `up`.
 
 Verifica: `curl localhost:3000/health`.
 
-### 2. App
+### 2. Chiave Google Maps
+
+La mappa degli eventi usa Google Maps (`react-native-maps`). Senza chiave
+l'app funziona, ma la mappa resta grigia.
+
+1. Google Cloud Console: progetto con fatturazione attiva, API
+   **Maps SDK for Android** abilitata, crea una chiave API.
+2. Consigliato: limitala ad app Android con nome pacchetto
+   `com.wavesetandroid` e SHA-1 del keystore di debug
+   (`keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android`).
+3. Nella radice del repository: `cp .env.example .env` e inserisci il valore
+   di `GOOGLE_MAPS_API_KEY`.
+
+La chiave la legge Gradle in fase di build (`android/app/build.gradle`) e la
+scrive nel manifest: dopo averla aggiunta o cambiata serve una nuova build
+nativa. Il `.env` è escluso da git.
+
+### 3. App
 
 Dalla radice del repository:
 
@@ -40,9 +57,9 @@ npm run android
 `npm install` applica anche le patch in `patches/` (tramite `patch-package`,
 nello script `postinstall`). Serve una build nativa (`npm run android`), non
 basta ricaricare Metro: l'app usa moduli nativi (`react-native-keychain`,
-`react-native-svg`, `react-native-reanimated`).
+`react-native-maps`, `react-native-svg`, `react-native-reanimated`).
 
-### 3. `adb reverse`
+### 4. `adb reverse`
 
 L'app chiama il backend su `http://localhost:3000` (vedi
 `src/api/config.ts`). Sul telefono o sull'emulatore `localhost` è il
@@ -66,9 +83,12 @@ Non c'è registrazione: gli utenti sono creati dal seed
 
 | Email | Password | Ruolo | Dati |
 |---|---|---|---|
-| `alice@waveset.test` | `alice-waveset` | USER | 2 playlist |
-| `bob@waveset.test` | `bob-waveset` | USER | 1 playlist |
+| `alice@waveset.test` | `alice-waveset` | USER | 2 playlist, segue Nova Circuit e Lucent Wave |
+| `bob@waveset.test` | `bob-waveset` | USER | 1 playlist, non segue nessuno |
 | `admin@waveset.test` | `admin-waveset` | ADMIN | nessuna playlist |
+
+Il seed contiene anche `test-a@waveset.test` e `test-b@waveset.test`,
+riservati ai test automatici del backend: non usarli per le prove a mano.
 
 Il catalogo è consultabile senza login; Playlist e Profilo richiedono
 l'accesso.
@@ -90,8 +110,10 @@ npm install      # solo la prima volta: installa le dipendenze in locale
 npm test         # con i container del passo 1 attivi
 ```
 
-Coprono login, middleware di autenticazione, scadenza e revoca delle sessioni
-e l'isolamento tra due utenti reali: Bob non può vedere, rinominare,
-modificare né eliminare le playlist di Alice, e viceversa. I test creano
-playlist e sessioni temporanee e le cancellano alla fine; i dati del seed non
-vengono modificati.
+Coprono login, middleware di autenticazione, scadenza e revoca delle
+sessioni, follow, feed Novità, ricerca, eventi e l'isolamento tra due utenti
+reali: un utente non può vedere né modificare le playlist o i follow
+dell'altro. Usano solo gli utenti `test-a`/`test-b` (mai Alice e Bob, quindi
+non chiudono le sessioni delle prove a mano), creano dati temporanei e li
+cancellano alla fine. I file di test girano in sequenza, perché condividono
+lo stesso database.

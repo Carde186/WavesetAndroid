@@ -36,7 +36,7 @@ export function recuperaBrano(id: number): Promise<BranoDettaglio> {
 }
 
 export function recuperaNovita(): Promise<Novita> {
-    return richiediGet('/brani/recenti');
+    return richiediGet('/novita');
 }
 
 export function recuperaAlbum(id: number): Promise<AlbumDettaglio> {

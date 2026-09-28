@@ -15,7 +15,8 @@ import RigaElenco from '../componenti/RigaElenco';
 import StatoSchermata from '../componenti/StatoSchermata';
 import TitoloSezione from '../componenti/TitoloSezione';
 import type { ParametriCatalogo } from '../navigazione/tipi';
-import { annoDa, formattaData, formattaOra } from '../utilita/data';
+import { annoDa } from '../utilita/data';
+import { riepilogoEvento } from '../utilita/eventi';
 
 type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioArtista'>;
 
@@ -199,17 +200,12 @@ function DettaglioArtistaSchermata({ route, navigation }: Props) {
                         <RigaElenco
                             key={evento.id}
                             titolo={evento.titolo}
-                            sottotitolo={[
-                                formattaData(evento.data_evento),
-                                evento.ora_evento
-                                    ? formattaOra(evento.ora_evento)
-                                    : '',
-                                [evento.luogo, evento.citta]
-                                    .filter(Boolean)
-                                    .join(', '),
-                            ]
-                                .filter(Boolean)
-                                .join(' · ')}
+                            sottotitolo={riepilogoEvento(evento)}
+                            onPress={() =>
+                                navigation.navigate('DettaglioEvento', {
+                                    eventoId: evento.id,
+                                })
+                            }
                         />
                     ))
                 )}

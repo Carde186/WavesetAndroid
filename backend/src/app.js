@@ -8,6 +8,7 @@ const routeAutenticazione = require('./routes/autenticazione');
 const routeBrani = require('./routes/brani');
 const routeEventi = require('./routes/eventi');
 const routeGeneri = require('./routes/generi');
+const routeNovita = require('./routes/novita');
 const routePlaylist = require('./routes/playlist');
 const routeRicerca = require('./routes/ricerca');
 const routeSalute = require('./routes/salute');
@@ -23,6 +24,7 @@ function creaApp() {
     app.use('/api', routeAlbum);
     app.use('/api', routeRicerca);
     app.use('/api', routeEventi);
+    app.use('/api', routeNovita);
     app.use('/api/auth', routeAutenticazione);
     // Middleware montato solo su /api/playlist: su '/api' intercetterebbe
     // anche gli URL inesistenti del catalogo (401 al posto di 404).

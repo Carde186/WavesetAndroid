@@ -1,17 +1,19 @@
-// Schermate di catalogo condivise tra gli stack che le ospitano (Home e
-// Playlist): un brano raggiunto dalla playlist deve poter aprire lo stesso
-// Dettaglio artista/album di quello raggiunto dal catalogo.
+// Schermate di catalogo condivise tra gli stack che le ospitano (Home,
+// Eventi, Playlist): un brano raggiunto dalla playlist deve poter aprire lo
+// stesso Dettaglio artista/album di quello raggiunto dal catalogo, e un
+// evento si apre sia dalla mappa sia da Dettaglio artista o dalle Novità.
 export type ParametriCatalogo = {
     DettaglioArtista: { artistaId: number };
     DettaglioBrano: { branoId: number };
     DettaglioAlbum: { albumId: number };
+    DettaglioEvento: { eventoId: number };
 };
 
 export type ParametriStackHome = ParametriCatalogo & {
     Home: undefined;
 };
 
-export type ParametriStackEventi = {
+export type ParametriStackEventi = ParametriCatalogo & {
     Eventi: undefined;
 };
 

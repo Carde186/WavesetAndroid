@@ -77,12 +77,16 @@ def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 // (escluso da git, vedi .env.example) o, in alternativa, da una variabile
 // d'ambiente con lo stesso nome, e la si inietta nel manifest come
 // placeholder. Senza chiave la build non fallisce: la mappa resta grigia.
+// Righe accettate come fa dotenv: spazi attorno a "=" e valore tra virgolette
+// facoltativi (GOOGLE_MAPS_API_KEY=abc, GOOGLE_MAPS_API_KEY = "abc").
 def leggiChiaveGoogleMaps() {
     def fileEnv = rootProject.file("../.env")
     if (fileEnv.exists()) {
-        def riga = fileEnv.readLines().find { it.trim().startsWith("GOOGLE_MAPS_API_KEY=") }
-        if (riga != null) {
-            return riga.substring(riga.indexOf("=") + 1).trim()
+        for (riga in fileEnv.readLines()) {
+            def uguale = riga.indexOf("=")
+            if (uguale > 0 && riga.substring(0, uguale).trim() == "GOOGLE_MAPS_API_KEY") {
+                return riga.substring(uguale + 1).trim().replaceAll(/^["']|["']$/, "")
+            }
         }
     }
     return System.getenv("GOOGLE_MAPS_API_KEY") ?: ""

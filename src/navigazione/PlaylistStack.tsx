@@ -6,6 +6,7 @@ import AccediSchermata from '../schermate/AccediSchermata';
 import DettaglioAlbumSchermata from '../schermate/DettaglioAlbumSchermata';
 import DettaglioArtistaSchermata from '../schermate/DettaglioArtistaSchermata';
 import DettaglioBranoSchermata from '../schermate/DettaglioBranoSchermata';
+import DettaglioEventoSchermata from '../schermate/DettaglioEventoSchermata';
 import DettaglioPlaylistSchermata from '../schermate/DettaglioPlaylistSchermata';
 import LeMiePlaylistSchermata from '../schermate/LeMiePlaylistSchermata';
 import type { ParametriStackPlaylist } from './tipi';
@@ -60,6 +61,11 @@ function PlaylistStack() {
                 name="DettaglioAlbum"
                 component={DettaglioAlbumSchermata}
                 options={{ title: 'Album' }}
+            />
+            <Stack.Screen
+                name="DettaglioEvento"
+                component={DettaglioEventoSchermata}
+                options={{ title: 'Evento' }}
             />
         </Stack.Navigator>
     );

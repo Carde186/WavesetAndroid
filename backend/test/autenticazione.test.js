@@ -8,8 +8,8 @@ const { after, before, describe, test } = require('node:test');
 const {
     URL_API,
     db,
-    ALICE,
-    BOB,
+    UTENTE_A,
+    UTENTE_B,
     nuovoDevice,
     chiama,
     accedi,
@@ -20,15 +20,13 @@ after(chiudi);
 
 describe('login', () => {
     test('credenziali corrette: token di 256 bit e dati utente', async () => {
-        const sessione = await accedi(ALICE);
+        const sessione = await accedi(UTENTE_A);
 
         assert.match(sessione.token, /^[0-9a-f]{64}$/);
-        assert.deepEqual(sessione.utente, {
-            id: 1,
-            nome: 'Alice',
-            email: ALICE.email,
-            ruolo: 'USER',
-        });
+        assert.equal(sessione.utente.email, UTENTE_A.email);
+        assert.equal(sessione.utente.nome, 'Test A');
+        assert.equal(sessione.utente.ruolo, 'USER');
+        assert.equal(typeof sessione.utente.id, 'number');
     });
 
     test('password sbagliata ed email inesistente: stessa risposta', async () => {
@@ -43,7 +41,7 @@ describe('login', () => {
                 body: JSON.stringify(credenziali),
             });
 
-        const sbagliata = await prova({ ...ALICE, password: 'sbagliata' });
+        const sbagliata = await prova({ ...UTENTE_A, password: 'sbagliata' });
         const inesistente = await prova({
             email: 'nessuno@waveset.test',
             password: 'qualunque',
@@ -58,14 +56,14 @@ describe('login', () => {
         const risposta = await fetch(`${URL_API}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ALICE),
+            body: JSON.stringify(UTENTE_A),
         });
 
         assert.equal(risposta.status, 400);
     });
 
     test('il token non è salvato in chiaro, solo il suo SHA-256', async () => {
-        const sessione = await accedi(ALICE);
+        const sessione = await accedi(UTENTE_A);
         const [righe] = await db.query(
             'SELECT hash_token FROM sessioni WHERE device_id = ?',
             [sessione.deviceId],
@@ -86,7 +84,7 @@ describe('middleware sulle route protette', () => {
     });
 
     test('token inventato: 401', async () => {
-        const sessione = await accedi(ALICE);
+        const sessione = await accedi(UTENTE_A);
         const falsa = {
             ...sessione,
             token: crypto.randomBytes(32).toString('hex'),
@@ -99,7 +97,7 @@ describe('middleware sulle route protette', () => {
     });
 
     test('token giusto ma device_id di un altro dispositivo: 401', async () => {
-        const sessione = await accedi(ALICE);
+        const sessione = await accedi(UTENTE_A);
         const altroDevice = { ...sessione, deviceId: nuovoDevice() };
 
         assert.equal(
@@ -109,7 +107,7 @@ describe('middleware sulle route protette', () => {
     });
 
     test('sessione scaduta: 401 e la riga viene cancellata', async () => {
-        const sessione = await accedi(ALICE);
+        const sessione = await accedi(UTENTE_A);
         await db.query(
             'UPDATE sessioni SET scadenza = NOW() - INTERVAL 1 MINUTE WHERE device_id = ?',
             [sessione.deviceId],
@@ -130,57 +128,57 @@ describe('middleware sulle route protette', () => {
 });
 
 describe('isolamento tra due utenti reali', () => {
-    let alice;
-    let bob;
-    let playlistAlice;
-    let playlistBob;
+    let utenteA;
+    let utenteB;
+    let playlistA;
+    let playlistB;
 
     before(async () => {
-        alice = await accedi(ALICE);
-        bob = await accedi(BOB);
+        utenteA = await accedi(UTENTE_A);
+        utenteB = await accedi(UTENTE_B);
 
-        playlistAlice = (
+        playlistA = (
             await chiama('/playlist', {
                 metodo: 'POST',
-                sessione: alice,
-                corpo: { nome: 'Isolamento Alice' },
+                sessione: utenteA,
+                corpo: { nome: 'Isolamento A' },
             })
         ).dati;
-        await chiama(`/playlist/${playlistAlice.id}/brani`, {
+        await chiama(`/playlist/${playlistA.id}/brani`, {
             metodo: 'POST',
-            sessione: alice,
+            sessione: utenteA,
             corpo: { branoId: 1 },
         });
 
-        playlistBob = (
+        playlistB = (
             await chiama('/playlist', {
                 metodo: 'POST',
-                sessione: bob,
-                corpo: { nome: 'Isolamento Bob' },
+                sessione: utenteB,
+                corpo: { nome: 'Isolamento B' },
             })
         ).dati;
-        await chiama(`/playlist/${playlistBob.id}/brani`, {
+        await chiama(`/playlist/${playlistB.id}/brani`, {
             metodo: 'POST',
-            sessione: bob,
+            sessione: utenteB,
             corpo: { branoId: 2 },
         });
     });
 
     after(async () => {
-        await chiama(`/playlist/${playlistAlice.id}`, {
+        await chiama(`/playlist/${playlistA.id}`, {
             metodo: 'DELETE',
-            sessione: alice,
+            sessione: utenteA,
         });
-        await chiama(`/playlist/${playlistBob.id}`, {
+        await chiama(`/playlist/${playlistB.id}`, {
             metodo: 'DELETE',
-            sessione: bob,
+            sessione: utenteB,
         });
     });
 
     // Stessi controlli nelle due direzioni: A contro B e B contro A.
     const coppie = [
-        ['Bob sulla playlist di Alice', () => [bob, alice, playlistAlice, 1]],
-        ['Alice sulla playlist di Bob', () => [alice, bob, playlistBob, 2]],
+        ['B sulla playlist di A', () => [utenteB, utenteA, playlistA, 1]],
+        ['A sulla playlist di B', () => [utenteA, utenteB, playlistB, 2]],
     ];
 
     for (const [nome, dati] of coppie) {
@@ -241,8 +239,8 @@ describe('isolamento tra due utenti reali', () => {
 
 describe('logout e sessioni per dispositivo', () => {
     test('logout: chiude solo la sessione del dispositivo corrente', async () => {
-        const telefono = await accedi(ALICE);
-        const tablet = await accedi(ALICE);
+        const telefono = await accedi(UTENTE_A);
+        const tablet = await accedi(UTENTE_A);
 
         const esito = await chiama('/auth/logout', {
             metodo: 'POST',
@@ -261,9 +259,9 @@ describe('logout e sessioni per dispositivo', () => {
     });
 
     test('logout-tutti: chiude le sessioni su tutti i dispositivi', async () => {
-        const telefono = await accedi(ALICE);
-        const tablet = await accedi(ALICE);
-        const bob = await accedi(BOB);
+        const telefono = await accedi(UTENTE_A);
+        const tablet = await accedi(UTENTE_A);
+        const altroUtente = await accedi(UTENTE_B);
 
         const esito = await chiama('/auth/logout-tutti', {
             metodo: 'POST',
@@ -280,20 +278,23 @@ describe('logout e sessioni per dispositivo', () => {
             401,
         );
         // Le sessioni degli altri utenti non vengono toccate.
-        assert.equal((await chiama('/auth/io', { sessione: bob })).stato, 200);
+        assert.equal(
+            (await chiama('/auth/io', { sessione: altroUtente })).stato,
+            200,
+        );
     });
 
     test('un nuovo login sullo stesso dispositivo sostituisce la sessione', async () => {
         const deviceId = nuovoDevice();
-        const primaAlice = await accedi(ALICE, deviceId);
-        const poiBob = await accedi(BOB, deviceId);
+        const primaA = await accedi(UTENTE_A, deviceId);
+        const poiB = await accedi(UTENTE_B, deviceId);
 
         assert.equal(
-            (await chiama('/auth/io', { sessione: primaAlice })).stato,
+            (await chiama('/auth/io', { sessione: primaA })).stato,
             401,
         );
-        const io = await chiama('/auth/io', { sessione: poiBob });
+        const io = await chiama('/auth/io', { sessione: poiB });
         assert.equal(io.stato, 200);
-        assert.equal(io.dati.email, BOB.email);
+        assert.equal(io.dati.email, UTENTE_B.email);
     });
 });

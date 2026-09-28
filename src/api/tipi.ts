@@ -106,10 +106,21 @@ export type Utente = {
     ruolo: 'USER' | 'ADMIN';
 };
 
+// Evento completo di coordinate e lineup (GET /eventi, /eventi/:id, /novita).
+export type Evento = EventoSintetico & {
+    // null se l'evento non ha coordinate: niente marker, solo in lista.
+    latitudine: number | null;
+    longitudine: number | null;
+    // In ordine alfabetico: il primo è quello mostrato sul marker.
+    lineup: ArtistaSintetico[];
+};
+
 export type Novita = {
-    // true: brani degli artisti seguiti; false: ultime uscite del catalogo.
+    // true: brani ed eventi degli artisti seguiti; false: ultime uscite del
+    // catalogo (e nessun evento).
     personalizzato: boolean;
     brani: BranoDettaglio[];
+    eventi: Evento[];
 };
 
 export type RisultatiRicerca = {

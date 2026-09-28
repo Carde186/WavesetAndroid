@@ -21,11 +21,17 @@ import OverlayRicerca from '../componenti/OverlayRicerca';
 import Pillola from '../componenti/Pillola';
 import RigaElenco from '../componenti/RigaElenco';
 import TitoloSezione from '../componenti/TitoloSezione';
-import type { ArtistaSintetico, BranoDettaglio, Genere } from '../api/tipi';
+import type {
+    ArtistaSintetico,
+    BranoDettaglio,
+    Evento,
+    Genere,
+} from '../api/tipi';
 import { mostraCampoRicercaHeader } from '../navigazione/CampoRicercaHeader';
 import { useRicercaHome } from '../navigazione/ContestoRicercaHome';
 import LogoHeaderLeft from '../navigazione/LogoHeaderLeft';
 import type { ParametriStackHome } from '../navigazione/tipi';
+import { riepilogoEvento } from '../utilita/eventi';
 
 type Props = NativeStackScreenProps<ParametriStackHome, 'Home'>;
 
@@ -37,6 +43,7 @@ function NienteHeaderLeft() {
 function HomeSchermata({ navigation }: Props) {
     const { utente } = useAutenticazione();
     const [braniRecenti, setBraniRecenti] = useState<BranoDettaglio[]>([]);
+    const [eventiNovita, setEventiNovita] = useState<Evento[]>([]);
     const [novitaPersonalizzate, setNovitaPersonalizzate] = useState(false);
     const [generi, setGeneri] = useState<Genere[]>([]);
     const [genereSelezionato, setGenereSelezionato] = useState<number | null>(
@@ -94,6 +101,7 @@ function HomeSchermata({ navigation }: Props) {
             recuperaNovita()
                 .then(novita => {
                     setBraniRecenti(novita.brani);
+                    setEventiNovita(novita.eventi);
                     setNovitaPersonalizzate(novita.personalizzato);
                 })
                 .catch(() => {});
@@ -118,35 +126,61 @@ function HomeSchermata({ navigation }: Props) {
     return (
         <View className="flex-1 bg-sfondo">
             <ScrollView className="flex-1">
+                {(braniRecenti.length > 0 || eventiNovita.length > 0) && (
+                    <TitoloSezione>
+                        {novitaPersonalizzate
+                            ? 'Novità dagli artisti che segui'
+                            : 'Ultime uscite'}
+                    </TitoloSezione>
+                )}
+
                 {braniRecenti.length > 0 && (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        className="px-4 py-3"
+                    >
+                        {braniRecenti.map(brano => (
+                            <CartaNovita
+                                key={brano.id}
+                                titolo={brano.titolo}
+                                artistaNome={brano.artista.nome}
+                                immagineUrl={
+                                    brano.album?.copertinaUrl ??
+                                    brano.artista.immagineUrl
+                                }
+                                onPress={() =>
+                                    navigation.navigate('DettaglioBrano', {
+                                        branoId: brano.id,
+                                    })
+                                }
+                            />
+                        ))}
+                    </ScrollView>
+                )}
+
+                {/* Solo nel feed personalizzato: prossimi eventi con almeno
+                    un artista seguito (CLAUDE.md, "brani/eventi recenti"). */}
+                {eventiNovita.length > 0 && (
                     <>
-                        <TitoloSezione>
-                            {novitaPersonalizzate
-                                ? 'Novità dagli artisti che segui'
-                                : 'Ultime uscite'}
-                        </TitoloSezione>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            className="px-4 py-3"
-                        >
-                            {braniRecenti.map(brano => (
-                                <CartaNovita
-                                    key={brano.id}
-                                    titolo={brano.titolo}
-                                    artistaNome={brano.artista.nome}
-                                    immagineUrl={
-                                        brano.album?.copertinaUrl ??
-                                        brano.artista.immagineUrl
-                                    }
-                                    onPress={() =>
-                                        navigation.navigate('DettaglioBrano', {
-                                            branoId: brano.id,
-                                        })
-                                    }
-                                />
-                            ))}
-                        </ScrollView>
+                        <Text className="mx-4 mt-1 text-sm font-semibold text-testo-secondario">
+                            Prossimi eventi
+                        </Text>
+                        {eventiNovita.map(evento => (
+                            <RigaElenco
+                                key={evento.id}
+                                titolo={evento.titolo}
+                                sottotitolo={riepilogoEvento(evento)}
+                                immagineUrl={
+                                    evento.lineup[0]?.immagine_url ?? null
+                                }
+                                onPress={() =>
+                                    navigation.navigate('DettaglioEvento', {
+                                        eventoId: evento.id,
+                                    })
+                                }
+                            />
+                        ))}
                     </>
                 )}
 

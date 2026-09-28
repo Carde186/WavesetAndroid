@@ -1,21 +1,21 @@
 // Eventi: elenco (tutti / seguiti), dettaglio, esclusione degli eventi
-// passati. Seed: Alice segue Nova Circuit e Lucent Wave, Bob nessuno.
+// passati. Seed: l'utente A segue Nova Circuit e Lucent Wave, B nessuno.
 
 const assert = require('node:assert/strict');
 const { after, before, describe, test } = require('node:test');
 
-const { db, ALICE, BOB, chiama, accedi, chiudi } = require('./aiuto');
+const { db, UTENTE_A, UTENTE_B, chiama, accedi, chiudi } = require('./aiuto');
 
 const TITOLO_PASSATO = 'Evento passato di prova';
 
-let alice;
-let bob;
+let utenteA;
+let utenteB;
 
 before(async () => {
-    alice = await accedi(ALICE);
-    bob = await accedi(BOB);
+    utenteA = await accedi(UTENTE_A);
+    utenteB = await accedi(UTENTE_B);
 
-    // Evento di ieri con Nova Circuit (seguito da Alice): non deve comparire
+    // Evento di ieri con Nova Circuit (seguito da A): non deve comparire
     // né in "tutti" né in "seguiti".
     const [risultato] = await db.query(
         `INSERT INTO evento (titolo, data_evento, luogo, citta, latitudine, longitudine)
@@ -59,7 +59,7 @@ describe('elenco eventi', () => {
     test('gli eventi passati non compaiono', async () => {
         const tutti = (await chiama('/eventi')).dati;
         const seguiti = (
-            await chiama('/eventi?filtro=seguiti', { sessione: alice })
+            await chiama('/eventi?filtro=seguiti', { sessione: utenteA })
         ).dati;
 
         assert.ok(!titoli(tutti).includes(TITOLO_PASSATO));
@@ -68,15 +68,15 @@ describe('elenco eventi', () => {
 
     test('seguiti: solo eventi con almeno un artista seguito', async () => {
         const { dati } = await chiama('/eventi?filtro=seguiti', {
-            sessione: alice,
+            sessione: utenteA,
         });
 
         assert.deepEqual(titoli(dati), ['Circuiti Live', 'Notte Elettrica']);
     });
 
-    test('seguiti: isolato per utente (Bob non segue nessuno)', async () => {
+    test('seguiti: isolato per utente (B non segue nessuno)', async () => {
         const { stato, dati } = await chiama('/eventi?filtro=seguiti', {
-            sessione: bob,
+            sessione: utenteB,
         });
 
         assert.equal(stato, 200);
