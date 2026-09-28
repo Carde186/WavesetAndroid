@@ -7,7 +7,7 @@ import HomeStack from './HomeStack';
 import PlaylistStack from './PlaylistStack';
 import ProfiloStack from './ProfiloStack';
 import type { ParametriTab } from './tipi';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 
 const Tab = createBottomTabNavigator<ParametriTab>();
 
@@ -26,16 +26,21 @@ function creaTabBarIcon(nomeRoute: keyof ParametriTab) {
 }
 
 function TabNavigator() {
+    // Letto qui, non dentro screenOptions: è un hook, e la callback di
+    // screenOptions viene richiamata da React Navigation, non da React —
+    // chiamarlo lì violerebbe le regole degli hook.
+    const token = useToken();
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarIcon: creaTabBarIcon(route.name as keyof ParametriTab),
-                tabBarActiveTintColor: TOKEN.accento,
-                tabBarInactiveTintColor: TOKEN.testoSecondario,
+                tabBarActiveTintColor: token.accento,
+                tabBarInactiveTintColor: token.testoSecondario,
                 tabBarStyle: {
-                    backgroundColor: TOKEN.superficie,
-                    borderTopColor: TOKEN.bordo,
+                    backgroundColor: token.superficie,
+                    borderTopColor: token.bordo,
                     borderTopWidth: 1,
                     elevation: 0,
                     shadowOpacity: 0,

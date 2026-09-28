@@ -26,6 +26,10 @@ export type ParametriStackPlaylist = ParametriCatalogo & {
 export type ParametriStackProfilo = {
     Profilo: undefined;
     Accedi: undefined;
+    // Registrata in entrambi i rami dello stack (loggato/anonimo): deve
+    // restare raggiungibile anche da anonimo (CLAUDE.md, "Impostazioni" —
+    // sezione Aspetto sempre accessibile).
+    Impostazioni: undefined;
 };
 
 export type ParametriTab = {

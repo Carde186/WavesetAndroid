@@ -1,36 +1,43 @@
 import type { MapType, MapStyleElement } from 'react-native-maps';
 
 import type { TipoMappa } from '../preferenze/ContestoPreferenze';
-import { TOKEN } from './token';
+import { TOKEN_SCURO } from './token';
 
 // Stile scuro per Google Maps (prop customMapStyle di react-native-maps),
-// costruito sui token dell'app: usato dal tipo di mappa "Scura". Solo
+// usato dal tipo di mappa "Scura" — una scelta indipendente dal tema
+// chiaro/scuro dell'app (sono due preferenze distinte in ContestoPreferenze:
+// si può avere l'app in tema chiaro e la mappa comunque scura, o viceversa).
+// Per questo usa sempre TOKEN_SCURO fisso, non l'hook useToken: il colore
+// della mappa "Scura" non deve cambiare se cambia il tema dell'app. Solo
 // geometrie e testi in scala di grigio: l'unico colore resta l'accento viola
 // dei marker.
 export const STILE_MAPPA_SCURO: MapStyleElement[] = [
-    { elementType: 'geometry', stylers: [{ color: TOKEN.superficie }] },
+    { elementType: 'geometry', stylers: [{ color: TOKEN_SCURO.superficie }] },
     { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
     {
         elementType: 'labels.text.fill',
-        stylers: [{ color: TOKEN.testoSecondario }],
+        stylers: [{ color: TOKEN_SCURO.testoSecondario }],
     },
-    { elementType: 'labels.text.stroke', stylers: [{ color: TOKEN.sfondo }] },
+    {
+        elementType: 'labels.text.stroke',
+        stylers: [{ color: TOKEN_SCURO.sfondo }],
+    },
     {
         featureType: 'administrative',
         elementType: 'geometry.stroke',
-        stylers: [{ color: TOKEN.bordo }],
+        stylers: [{ color: TOKEN_SCURO.bordo }],
     },
     { featureType: 'poi', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit', stylers: [{ visibility: 'off' }] },
     {
         featureType: 'road',
         elementType: 'geometry',
-        stylers: [{ color: TOKEN.bordo }],
+        stylers: [{ color: TOKEN_SCURO.bordo }],
     },
     {
         featureType: 'water',
         elementType: 'geometry',
-        stylers: [{ color: TOKEN.sfondo }],
+        stylers: [{ color: TOKEN_SCURO.sfondo }],
     },
 ];
 

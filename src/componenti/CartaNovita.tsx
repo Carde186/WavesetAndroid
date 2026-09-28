@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { Music } from 'lucide-react-native';
 
+import { useToken } from '../tema/useToken';
 import Immagine from './Immagine';
 
 type Props = {
@@ -13,6 +14,11 @@ type Props = {
 // Solo brani per ora: il tipo "evento" arriverà con l'entità Event (step
 // Eventi + mappa), insieme all'icona che distingue i due tipi di card.
 function CartaNovita({ titolo, artistaNome, immagineUrl, onPress }: Props) {
+    // Il badge sotto è bg-sfondo/80: cambia con il tema, quindi anche
+    // l'icona dentro deve seguirlo (altrimenti in tema chiaro diventerebbe
+    // un'icona quasi bianca su un badge quasi bianco).
+    const token = useToken();
+
     return (
         <Pressable onPress={onPress} className="mr-3 w-36 active:opacity-70">
             <View className="relative">
@@ -21,7 +27,7 @@ function CartaNovita({ titolo, artistaNome, immagineUrl, onPress }: Props) {
                     className="h-36 w-36 rounded-card bg-superficie"
                 />
                 <View className="absolute bottom-1 right-1 rounded-full bg-sfondo/80 p-1">
-                    <Music size={14} color="#F5F5F7" />
+                    <Music size={14} color={token.testoPrimario} />
                 </View>
             </View>
             <Text

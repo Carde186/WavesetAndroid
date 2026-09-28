@@ -14,7 +14,7 @@ import BottoneIcona from '../componenti/BottoneIcona';
 import RigaElenco from '../componenti/RigaElenco';
 import StatoSchermata from '../componenti/StatoSchermata';
 import type { ParametriStackPlaylist } from '../navigazione/tipi';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 
 type Props = NativeStackScreenProps<
     ParametriStackPlaylist,
@@ -28,6 +28,7 @@ function DettaglioPlaylistSchermata({ route, navigation }: Props) {
     const [inCaricamento, setInCaricamento] = useState(true);
     const [errore, setErrore] = useState<string | null>(null);
     const [messaggioAvviso, setMessaggioAvviso] = useState<string | null>(null);
+    const token = useToken();
 
     const ricaricaPlaylist = useCallback(() => {
         setInCaricamento(true);
@@ -109,7 +110,7 @@ function DettaglioPlaylistSchermata({ route, navigation }: Props) {
                                     )}
                                     <BottoneIcona
                                         icona={Trash2}
-                                        colore={TOKEN.pericolo}
+                                        colore={token.pericolo}
                                         accessibilityLabel={`Rimuovi ${brano.titolo} dalla playlist`}
                                         onPress={() =>
                                             gestisciRimuovi(brano.id)

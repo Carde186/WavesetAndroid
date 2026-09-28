@@ -5,22 +5,39 @@ module.exports = {
     theme: {
         extend: {
             // Token dell'identità visiva — vedi CLAUDE.md, sezione
-            // "Identità visiva". Valori esatti, non approssimati.
+            // "Identità visiva" (valori scuri esatti) e "Impostazioni"
+            // (valori chiari, derivati — vedi src/tema/token.ts per il
+            // ragionamento sui contrasti).
+            //
+            // Ogni colore punta a una variabile CSS, non a un esadecimale
+            // fisso: le variabili vengono impostate una volta sola, in cima
+            // all'albero, da App.tsx (tramite vars() di NativeWind), con il
+            // valore giusto per il tema corrente. Così tutte le classi già
+            // scritte in ogni schermata (bg-sfondo, text-testo-primario...)
+            // si aggiornano da sole al cambio di tema, senza toccare i file
+            // che le usano.
             colors: {
-                sfondo: '#0B0B0F',
-                superficie: '#16161D',
-                accento: '#8B5CF6',
+                sfondo: 'var(--colore-sfondo)',
+                superficie: 'var(--colore-superficie)',
+                accento: 'var(--colore-accento)',
                 // Sfondo dei controlli con etichetta di testo piccolo
-                // (bottone primario, pillola selezionata): #8B5CF6 dà solo
+                // (bottone primario, pillola selezionata): l'accento dà solo
                 // 3,89:1 col testo primario, sotto il 4,5:1 WCAG AA. Stessa
-                // tonalità, più scuro: 5,23:1. L'accento resta #8B5CF6 per
-                // tab attiva, link, icone e testo su sfondo scuro.
-                'accento-scuro': '#7C3AED',
+                // tonalità, più scura: 5,23:1. L'accento "chiaro" resta per
+                // tab attiva, link, icone e testo su sfondo/superficie.
+                'accento-scuro': 'var(--colore-accento-scuro)',
                 testo: {
-                    primario: '#F5F5F7',
-                    secondario: '#9CA3AF',
+                    primario: 'var(--colore-testo-primario)',
+                    secondario: 'var(--colore-testo-secondario)',
                 },
-                bordo: '#2A2A33',
+                bordo: 'var(--colore-bordo)',
+                // Testo/icone sopra bg-accento o bg-accento-scuro (bottone
+                // primario, pillola selezionata, avatar, badge sulla
+                // mappa): quello sfondo non cambia con il tema, quindi
+                // questo colore non può essere testo-primario (si
+                // inverte). Stesso valore nei due temi — vedi
+                // src/tema/token.ts.
+                'testo-su-accento': 'var(--colore-testo-su-accento)',
             },
             borderRadius: {
                 card: '8px',

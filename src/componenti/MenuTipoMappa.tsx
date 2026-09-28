@@ -3,7 +3,7 @@ import { Check, Layers } from 'lucide-react-native';
 
 import { TIPI_MAPPA } from '../preferenze/ContestoPreferenze';
 import type { TipoMappa } from '../preferenze/ContestoPreferenze';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 import BottoneIcona from './BottoneIcona';
 
 type Props = {
@@ -17,6 +17,8 @@ type Props = {
 // pannello sotto (non un modale: resta dentro l'area della mappa). Va messo
 // come fratello della MapView, dentro lo stesso contenitore.
 function MenuTipoMappa({ tipo, aperto, onApriChiudi, onScegli }: Props) {
+    const token = useToken();
+
     return (
         <View className="absolute right-3 top-3 items-end">
             {/* Sfondo e bordo: senza, l'icona si perderebbe sulla mappa. */}
@@ -24,7 +26,7 @@ function MenuTipoMappa({ tipo, aperto, onApriChiudi, onScegli }: Props) {
                 <BottoneIcona
                     icona={Layers}
                     accessibilityLabel="Tipo di mappa"
-                    colore={TOKEN.testoPrimario}
+                    colore={token.testoPrimario}
                     onPress={onApriChiudi}
                 />
             </View>
@@ -55,7 +57,7 @@ function MenuTipoMappa({ tipo, aperto, onApriChiudi, onScegli }: Props) {
                                     {etichetta}
                                 </Text>
                                 {attivo && (
-                                    <Check size={16} color={TOKEN.accento} />
+                                    <Check size={16} color={token.accento} />
                                 )}
                             </Pressable>
                         );

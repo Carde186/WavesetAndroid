@@ -17,9 +17,13 @@ function Pillola({ etichetta, selezionato, onPress }: Props) {
             }`}
         >
             <Text
+                // Selezionata: text-testo-su-accento, non text-testo-primario
+                // — lo sfondo bg-accento-scuro qui sopra è fisso nei due
+                // temi (vedi src/tema/token.ts), quindi anche il testo
+                // sopra deve esserlo.
                 className={
                     selezionato
-                        ? 'text-testo-primario'
+                        ? 'text-testo-su-accento'
                         : 'text-testo-secondario'
                 }
             >

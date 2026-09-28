@@ -27,7 +27,9 @@ type Props = {
 
 // Palette gradiente del blob — CLAUDE.md, sezione "Logo — blob + wordmark".
 // Famiglia viola/magenta, non i colori multi-tonalità del riferimento
-// originale.
+// originale. Fissa in entrambi i temi chiaro/scuro dell'app, come il
+// wordmark sotto: non sono legati allo sfondo della schermata, sono
+// l'identità del blob stesso.
 const COLORE_VIVIDO = '#ad04fb';
 const COLORE_INTERMEDIO = '#6a34ea';
 const COLORE_PROFONDO = '#8c008f';
@@ -251,7 +253,13 @@ function Logo({
                     className="items-center justify-center"
                 >
                     <Text
-                        className="font-semibold text-testo-primario"
+                        // Colore fisso via arbitrary value (non
+                        // text-testo-primario/vars()): il wordmark sta sopra
+                        // il gradiente viola/magenta del blob, non sopra lo
+                        // sfondo della schermata — deve restare leggibile lì
+                        // sopra in entrambi i temi, non seguire l'inversione
+                        // chiaro/scuro dell'app.
+                        className="font-semibold text-[#F5F5F7]"
                         style={{ fontSize: dimensione * 0.16 }}
                     >
                         Waveset

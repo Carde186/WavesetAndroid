@@ -25,7 +25,7 @@ import Dialogo from '../componenti/Dialogo';
 import RigaElenco from '../componenti/RigaElenco';
 import StatoSchermata from '../componenti/StatoSchermata';
 import type { ParametriStackPlaylist } from '../navigazione/tipi';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 
 type Props = NativeStackScreenProps<ParametriStackPlaylist, 'LeMiePlaylist'>;
 
@@ -41,6 +41,7 @@ function LeMiePlaylistSchermata({ navigation }: Props) {
     const [nomeInserito, setNomeInserito] = useState('');
     const [playlistDaEliminare, setPlaylistDaEliminare] =
         useState<PlaylistSintetica | null>(null);
+    const token = useToken();
 
     const ricaricaPlaylist = useCallback(() => {
         setInCaricamento(true);
@@ -151,7 +152,7 @@ function LeMiePlaylistSchermata({ navigation }: Props) {
                                 />
                                 <BottoneIcona
                                     icona={Trash2}
-                                    colore={TOKEN.pericolo}
+                                    colore={token.pericolo}
                                     accessibilityLabel={`Elimina ${p.nome}`}
                                     onPress={() => setPlaylistDaEliminare(p)}
                                 />
@@ -174,7 +175,9 @@ function LeMiePlaylistSchermata({ navigation }: Props) {
                 accessibilityLabel="Nuova playlist"
                 className="absolute bottom-4 right-4 h-14 w-14 items-center justify-center rounded-bottone-lg bg-accento-scuro active:opacity-70"
             >
-                <Plus size={24} color={TOKEN.testoPrimario} />
+                {/* testoSuAccento, non testoPrimario: lo sfondo
+                    bg-accento-scuro del FAB è fisso nei due temi. */}
+                <Plus size={24} color={token.testoSuAccento} />
             </Pressable>
 
             <Dialogo

@@ -465,7 +465,11 @@ procede, spuntando cosa è fatto:
       USER/ADMIN — vedi sezione dedicata "Autenticazione"; test di
       isolamento tra due utenti reali verificati, sia automatici che a mano)
 - [x] Ricerca
-- [ ] Eventi + mappa (Google Maps, marker, Dettaglio evento)
+- [x] Eventi + mappa (Google Maps, marker, Dettaglio evento; tipo di mappa
+      Standard/Scura/Satellite/Ibrida con preferenza salvata sul dispositivo
+      e avatar utente nella top bar — verificati a mano: menu e quattro
+      tipi, Standard chiara, persistenza dopo riavvio e logout, avatar nei
+      vari stack e durante la ricerca)
 - [ ] Integrazione Ticketmaster (import + coda di revisione)
 - [ ] Assistente AI per la coda di revisione (solo Fullstack)
 - [ ] Bottone Spotify + seed catalogo via Spotify Client Credentials

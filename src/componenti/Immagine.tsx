@@ -1,16 +1,20 @@
 import { Image, View } from 'react-native';
 import { Music } from 'lucide-react-native';
 
+import { useToken } from '../tema/useToken';
+
 type Props = {
     uri?: string | null;
     className?: string;
 };
 
-// #9CA3AF è lo stesso valore del token testo-secondario: NativeWind non
-// raggiunge le icone Lucide (non sono componenti nativi registrati da
-// react-native-css-interop), quindi qui va passato come prop `color`
-// invece che come className.
 function Immagine({ uri, className }: Props) {
+    // NativeWind non raggiunge le icone Lucide (non sono componenti nativi
+    // registrati da react-native-css-interop): il colore va passato come
+    // prop `color`, letto dal tema corrente invece che fisso, perché lo
+    // sfondo bg-superficie dietro cambia con il tema.
+    const token = useToken();
+
     if (!uri) {
         return (
             <View
@@ -18,7 +22,7 @@ function Immagine({ uri, className }: Props) {
                     className ?? ''
                 }`}
             >
-                <Music size={20} color="#9CA3AF" />
+                <Music size={20} color={token.testoSecondario} />
             </View>
         );
     }

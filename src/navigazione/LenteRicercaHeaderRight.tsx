@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 
 import BottoneIcona from '../componenti/BottoneIcona';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 import AvatarUtente from './AvatarUtente';
 import { useRicercaHome } from './ContestoRicercaHome';
 
@@ -10,13 +10,16 @@ import { useRicercaHome } from './ContestoRicercaHome';
 // (CampoRicercaHeader) ha tutta la larghezza.
 function LenteRicercaHeaderRight() {
     const { aperta, apri, chiudi } = useRicercaHome();
+    // Prima del return condizionale sotto: stesso ordine di hook a ogni
+    // render, apri o chiusa che sia la ricerca.
+    const token = useToken();
 
     if (aperta) {
         return (
             <BottoneIcona
                 icona={X}
                 accessibilityLabel="Chiudi la ricerca"
-                colore={TOKEN.testoPrimario}
+                colore={token.testoPrimario}
                 onPress={chiudi}
             />
         );
@@ -27,7 +30,7 @@ function LenteRicercaHeaderRight() {
             <BottoneIcona
                 icona={Search}
                 accessibilityLabel="Cerca artisti e brani"
-                colore={TOKEN.testoPrimario}
+                colore={token.testoPrimario}
                 onPress={apri}
             />
             <AvatarUtente />

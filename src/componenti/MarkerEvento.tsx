@@ -4,7 +4,7 @@ import { Marker } from 'react-native-maps';
 import { Music } from 'lucide-react-native';
 
 import type { Evento } from '../api/tipi';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 
 type Props = {
     evento: Evento;
@@ -22,6 +22,9 @@ type Props = {
 // è caricata (tenerlo sempre acceso pesa molto con tanti marker).
 function MarkerEvento({ evento, onPress }: Props) {
     const [fotoPronta, setFotoPronta] = useState(false);
+    // Prima di ogni return condizionale: gli hook vanno chiamati sempre
+    // nello stesso ordine, anche quando l'evento non ha coordinate.
+    const token = useToken();
 
     if (evento.latitudine === null || evento.longitudine === null) {
         return null;
@@ -51,12 +54,14 @@ function MarkerEvento({ evento, onPress }: Props) {
                             onError={() => setFotoPronta(true)}
                         />
                     ) : (
-                        <Music size={20} color={TOKEN.testoSecondario} />
+                        <Music size={20} color={token.testoSecondario} />
                     )}
                 </View>
                 {altri > 0 && (
                     <View className="absolute right-0 top-0 rounded-full bg-accento-scuro px-1.5">
-                        <Text className="text-xs font-semibold text-testo-primario">
+                        {/* text-testo-su-accento, non text-testo-primario:
+                            lo sfondo qui sotto è fisso nei due temi. */}
+                        <Text className="text-xs font-semibold text-testo-su-accento">
                             +{altri}
                         </Text>
                     </View>

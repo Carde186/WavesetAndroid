@@ -4,7 +4,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import { User } from 'lucide-react-native';
 
 import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 import type { ParametriTab } from './tipi';
 
 type Props = {
@@ -19,18 +19,21 @@ type Props = {
 function AvatarUtente({ soloIndicatore = false }: Props) {
     const { utente } = useAutenticazione();
     const navigation = useNavigation<NavigationProp<ParametriTab>>();
+    const token = useToken();
 
     const iniziale = utente?.nome.trim().charAt(0).toUpperCase() || '?';
 
     const cerchio = utente ? (
         <View className="h-8 w-8 items-center justify-center rounded-full bg-accento-scuro">
-            <Text className="text-sm font-semibold text-testo-primario">
+            {/* text-testo-su-accento, non text-testo-primario: lo sfondo
+                qui sopra è fisso nei due temi. */}
+            <Text className="text-sm font-semibold text-testo-su-accento">
                 {iniziale}
             </Text>
         </View>
     ) : (
         <View className="h-8 w-8 items-center justify-center rounded-full border border-bordo">
-            <User size={18} color={TOKEN.testoSecondario} />
+            <User size={18} color={token.testoSecondario} />
         </View>
     );
 

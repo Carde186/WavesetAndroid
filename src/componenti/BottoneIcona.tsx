@@ -1,7 +1,7 @@
 import { Pressable } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
-import { TOKEN } from '../tema/token';
+import { useToken } from '../tema/useToken';
 
 type Props = {
     icona: LucideIcon;
@@ -18,8 +18,14 @@ function BottoneIcona({
     icona: Icona,
     accessibilityLabel,
     onPress,
-    colore = TOKEN.testoSecondario,
+    colore,
 }: Props) {
+    // useToken() è un hook: il valore di default non può stare nella
+    // destrutturazione dei parametri (girerebbe fuori da un componente),
+    // va risolto qui dentro.
+    const token = useToken();
+    const coloreEffettivo = colore ?? token.testoSecondario;
+
     return (
         <Pressable
             onPress={onPress}
@@ -27,7 +33,7 @@ function BottoneIcona({
             accessibilityLabel={accessibilityLabel}
             className="h-10 w-10 items-center justify-center rounded-full active:opacity-60"
         >
-            <Icona size={20} color={colore} />
+            <Icona size={20} color={coloreEffettivo} />
         </Pressable>
     );
 }
