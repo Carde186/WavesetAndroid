@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { mostraAvatarHeaderRight } from './AvatarUtente';
 import LogoHeaderLeft from './LogoHeaderLeft';
 import DettaglioAlbumSchermata from '../schermate/DettaglioAlbumSchermata';
 import DettaglioArtistaSchermata from '../schermate/DettaglioArtistaSchermata';
@@ -14,7 +15,11 @@ const Stack = createNativeStackNavigator<ParametriStackEventi>();
 // Dettaglio artista, e da lì brani e album, senza cambiare tab.
 function EventiStack() {
     return (
-        <Stack.Navigator>
+        // screenOptions: l'avatar vale per tutte le schermate dello stack,
+        // dettagli compresi, senza ripeterlo in ognuna.
+        <Stack.Navigator
+            screenOptions={{ headerRight: mostraAvatarHeaderRight }}
+        >
             <Stack.Screen
                 name="Eventi"
                 component={EventiSchermata}

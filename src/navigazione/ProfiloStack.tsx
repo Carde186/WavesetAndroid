@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { mostraAvatarSoloIndicatore } from './AvatarUtente';
 import LogoHeaderLeft from './LogoHeaderLeft';
 import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import AccediSchermata from '../schermate/AccediSchermata';
@@ -12,8 +13,11 @@ const Stack = createNativeStackNavigator<ParametriStackProfilo>();
 function ProfiloStack() {
     const { utente } = useAutenticazione();
 
+    // Qui l'avatar è solo un indicatore: il tocco porterebbe dove si è già.
     return (
-        <Stack.Navigator>
+        <Stack.Navigator
+            screenOptions={{ headerRight: mostraAvatarSoloIndicatore }}
+        >
             {utente ? (
                 <Stack.Screen
                     name="Profilo"

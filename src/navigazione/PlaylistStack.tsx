@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { mostraAvatarHeaderRight } from './AvatarUtente';
 import LogoHeaderLeft from './LogoHeaderLeft';
 import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import AccediSchermata from '../schermate/AccediSchermata';
@@ -22,7 +23,9 @@ function PlaylistStack() {
 
     if (!utente) {
         return (
-            <Stack.Navigator>
+            <Stack.Navigator
+                screenOptions={{ headerRight: mostraAvatarHeaderRight }}
+            >
                 <Stack.Screen
                     name="Accedi"
                     component={AccediSchermata}
@@ -33,7 +36,9 @@ function PlaylistStack() {
     }
 
     return (
-        <Stack.Navigator>
+        <Stack.Navigator
+            screenOptions={{ headerRight: mostraAvatarHeaderRight }}
+        >
             <Stack.Screen
                 name="LeMiePlaylist"
                 component={LeMiePlaylistSchermata}

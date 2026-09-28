@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { mostraAvatarHeaderRight } from './AvatarUtente';
 import { FornitoreRicercaHome } from './ContestoRicercaHome';
 import { mostraLenteRicercaHeaderRight } from './LenteRicercaHeaderRight';
 import LogoHeaderLeft from './LogoHeaderLeft';
@@ -15,7 +16,11 @@ const Stack = createNativeStackNavigator<ParametriStackHome>();
 function HomeStack() {
     return (
         <FornitoreRicercaHome>
-            <Stack.Navigator>
+            {/* Avatar su tutte le schermate; la Home lo sostituisce con
+                lente + avatar (mostraLenteRicercaHeaderRight). */}
+            <Stack.Navigator
+                screenOptions={{ headerRight: mostraAvatarHeaderRight }}
+            >
                 <Stack.Screen
                     name="Home"
                     component={HomeSchermata}

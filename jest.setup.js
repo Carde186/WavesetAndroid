@@ -4,6 +4,15 @@
 // react-native-maps ha il suo mock in __mocks__/react-native-maps.js (usato da
 // Jest automaticamente per i pacchetti di node_modules).
 
+// AsyncStorage vuoto: nessuna preferenza salvata, quindi valori predefiniti.
+jest.mock('@react-native-async-storage/async-storage', () => ({
+    __esModule: true,
+    default: {
+        getItem: jest.fn(async () => null),
+        setItem: jest.fn(async () => {}),
+    },
+}));
+
 // Keychain vuoto: nessun token salvato, quindi l'app parte da anonima.
 jest.mock('react-native-keychain', () => ({
     getGenericPassword: jest.fn(async () => false),

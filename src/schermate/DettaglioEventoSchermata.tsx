@@ -13,7 +13,8 @@ import RigaElenco from '../componenti/RigaElenco';
 import StatoSchermata from '../componenti/StatoSchermata';
 import TitoloSezione from '../componenti/TitoloSezione';
 import type { ParametriCatalogo } from '../navigazione/tipi';
-import { STILE_MAPPA_SCURO } from '../tema/stileMappa';
+import { usePreferenze } from '../preferenze/ContestoPreferenze';
+import { propsMappa } from '../tema/stileMappa';
 import { doveEvento, quandoEvento } from '../utilita/eventi';
 
 type Props = NativeStackScreenProps<ParametriCatalogo, 'DettaglioEvento'>;
@@ -45,6 +46,8 @@ function DettaglioEventoSchermata({ route, navigation }: Props) {
     const [evento, setEvento] = useState<Evento | null>(null);
     const [inCaricamento, setInCaricamento] = useState(true);
     const [errore, setErrore] = useState<string | null>(null);
+    // Stesso tipo di mappa scelto nella schermata Eventi (qui senza menu).
+    const { tipoMappa } = usePreferenze();
 
     useEffect(() => {
         setInCaricamento(true);
@@ -96,7 +99,7 @@ function DettaglioEventoSchermata({ route, navigation }: Props) {
                             latitudeDelta: DELTA_DETTAGLIO,
                             longitudeDelta: DELTA_DETTAGLIO,
                         }}
-                        customMapStyle={STILE_MAPPA_SCURO}
+                        {...propsMappa(tipoMappa)}
                         scrollEnabled={false}
                         zoomEnabled={false}
                         rotateEnabled={false}

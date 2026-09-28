@@ -15,10 +15,12 @@ import type { FiltroEventi } from '../api/eventi';
 import type { Evento } from '../api/tipi';
 import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import MarkerEvento from '../componenti/MarkerEvento';
+import MenuTipoMappa from '../componenti/MenuTipoMappa';
 import Pillola from '../componenti/Pillola';
 import RigaElenco from '../componenti/RigaElenco';
 import type { ParametriStackEventi } from '../navigazione/tipi';
-import { STILE_MAPPA_SCURO } from '../tema/stileMappa';
+import { usePreferenze } from '../preferenze/ContestoPreferenze';
+import { propsMappa } from '../tema/stileMappa';
 import { riepilogoEvento } from '../utilita/eventi';
 
 type Props = NativeStackScreenProps<ParametriStackEventi, 'Eventi'>;
@@ -47,6 +49,8 @@ function EventiSchermata({ navigation }: Props) {
     const [inCaricamento, setInCaricamento] = useState(true);
     const [errore, setErrore] = useState<string | null>(null);
     const [mappaPronta, setMappaPronta] = useState(false);
+    const [menuAperto, setMenuAperto] = useState(false);
+    const { tipoMappa, impostaTipoMappa } = usePreferenze();
 
     // "Che seguo" esiste solo da loggati: dopo un logout si torna a "Tutti"
     // (altrimenti il backend risponderebbe 401).
@@ -139,9 +143,10 @@ function EventiSchermata({ navigation }: Props) {
                     provider={PROVIDER_GOOGLE}
                     style={StyleSheet.absoluteFill}
                     initialRegion={REGIONE_ITALIA}
-                    customMapStyle={STILE_MAPPA_SCURO}
+                    {...propsMappa(tipoMappa)}
                     toolbarEnabled={false}
                     onMapReady={() => setMappaPronta(true)}
+                    onPress={() => setMenuAperto(false)}
                 >
                     {/* Tap sul marker: direttamente al Dettaglio evento. */}
                     {eventi.map(evento => (
@@ -152,6 +157,16 @@ function EventiSchermata({ navigation }: Props) {
                         />
                     ))}
                 </MapView>
+
+                <MenuTipoMappa
+                    tipo={tipoMappa}
+                    aperto={menuAperto}
+                    onApriChiudi={() => setMenuAperto(aperto => !aperto)}
+                    onScegli={tipo => {
+                        impostaTipoMappa(tipo);
+                        setMenuAperto(false);
+                    }}
+                />
             </View>
 
             {utente && (

@@ -1,27 +1,37 @@
+import { View } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 
 import BottoneIcona from '../componenti/BottoneIcona';
 import { TOKEN } from '../tema/token';
+import AvatarUtente from './AvatarUtente';
 import { useRicercaHome } from './ContestoRicercaHome';
 
-// Lente a ricerca chiusa, X a ricerca aperta.
+// Lente e avatar a ricerca chiusa; a ricerca aperta solo la X, così il campo
+// (CampoRicercaHeader) ha tutta la larghezza.
 function LenteRicercaHeaderRight() {
     const { aperta, apri, chiudi } = useRicercaHome();
 
-    return aperta ? (
-        <BottoneIcona
-            icona={X}
-            accessibilityLabel="Chiudi la ricerca"
-            colore={TOKEN.testoPrimario}
-            onPress={chiudi}
-        />
-    ) : (
-        <BottoneIcona
-            icona={Search}
-            accessibilityLabel="Cerca artisti e brani"
-            colore={TOKEN.testoPrimario}
-            onPress={apri}
-        />
+    if (aperta) {
+        return (
+            <BottoneIcona
+                icona={X}
+                accessibilityLabel="Chiudi la ricerca"
+                colore={TOKEN.testoPrimario}
+                onPress={chiudi}
+            />
+        );
+    }
+
+    return (
+        <View className="flex-row items-center gap-2">
+            <BottoneIcona
+                icona={Search}
+                accessibilityLabel="Cerca artisti e brani"
+                colore={TOKEN.testoPrimario}
+                onPress={apri}
+            />
+            <AvatarUtente />
+        </View>
     );
 }
 
