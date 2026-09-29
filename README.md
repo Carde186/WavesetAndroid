@@ -262,6 +262,7 @@ Solo per gli artisti del **catalogo reale curato** (mai per i 4 demo): due compo
 - **4 artisti demo ancora presenti** (Nova Circuit, Sunset Grid, Lucent Wave, Break Signal — id 1-4): dati/nomi inventati, mai rimossi finora.
 - **Lotti 4 e 5 preparati ma NON applicati**: `importaCatalogoRealeLotto4.js` (Calvin Harris, David Guetta) e `importaCatalogoRealeLotto5.js` (Martin Garrix, Kygo) esistono, sono testati, ma non hanno scritto nulla nel database — eseguirli è una scelta rimandata, non un errore.
 - **Un brano ("Marea", di Fred again..) ha un collaboratore popolato** ("The Blessed Madonna") — solo se è stato eseguito anche il passo facoltativo del punto 7 sopra.
+- **Perché "solo" 6 artisti reali**: ogni artista richiede una verifica manuale non automatizzabile — identità su MusicBrainz (rischio di omonimi), foto con licenza libera verificata singolarmente su Wikimedia Commons, e per ogni brano un confronto puntuale fra edizione Spotify e Apple (titolo esatto, durata, featuring reali vs. inventati nel titolo) per evitare errori di attribuzione. È un processo lento per scelta, non automatizzabile senza perdere l'affidabilità dei dati verificati. Con la consegna imminente, il lavoro si è fermato dopo il lotto 3 per dare priorità a stabilizzazione e README, lasciando i lotti 4 e 5 pronti ma non applicati (vedi punto sopra).
 
 ### Database di sviluppo attuale vs dati ricreabili da `git clone`
 
