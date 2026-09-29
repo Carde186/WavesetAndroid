@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Linking, ScrollView } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ExternalLink } from 'lucide-react-native';
 
 import { recuperaAlbum } from '../api/catalogo';
 import type { AlbumDettaglio } from '../api/tipi';
+import AnteprimaCopertinaItunes from '../componenti/AnteprimaCopertinaItunes';
+import AnteprimaLinkSpotifyAlbum from '../componenti/AnteprimaLinkSpotifyAlbum';
 import BottoneIcona from '../componenti/BottoneIcona';
 import IntestazioneDettaglio from '../componenti/IntestazioneDettaglio';
 import RigaElenco from '../componenti/RigaElenco';
@@ -70,9 +72,29 @@ function DettaglioAlbumSchermata({ route, navigation }: Props) {
                 }
             />
 
+            {/* Solo per i pochi album reali con una mappatura verificata
+                (CLAUDE.md, "Catalogo reale"): entrambi non rendono nulla
+                per il seed dimostrativo, resta il placeholder sopra.
+                Colonna: copertina, poi badge Apple Music, poi logo
+                Spotify — stesso ordine ovunque appaiano insieme. */}
+            <View className="mx-4 mt-4 items-start gap-2">
+                <AnteprimaCopertinaItunes albumId={album.id} />
+                <AnteprimaLinkSpotifyAlbum albumId={album.id} />
+            </View>
+
             {album.brani.length > 0 && (
                 <>
                     <TitoloSezione>Tracce</TitoloSezione>
+                    {/* Solo il bottone Spotify per riga (quando
+                        brano.url_spotify esiste già, invariato). Ogni riga
+                        ha l'id del brano (AlbumDettaglio.brani[].id), quindi
+                        tecnicamente potrebbe risolvere anche il proprio
+                        link Apple — ma un badge Apple Music intero non
+                        entra in una riga di lista da 48px (stesso motivo
+                        per cui qui non c'è nemmeno la foto): niente da
+                        "simulare" riusando il link dell'album, il vero
+                        link per traccia resta solo nel Dettaglio brano
+                        dedicato, dove il badge ha spazio. */}
                     {album.brani.map(brano => (
                         <RigaElenco
                             key={brano.id}

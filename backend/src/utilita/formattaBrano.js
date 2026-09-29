@@ -6,6 +6,10 @@ function formattaBrano(brano) {
         titolo: brano.titolo,
         dataPubblicazione: brano.data_pubblicazione,
         urlSpotify: brano.url_spotify,
+        // Solo quando il nome del collaboratore NON compare già nel
+        // titolo (vedi db/init/12_collaboratori_brano_schema.sql) — mai
+        // un secondo artista con una propria pagina nel catalogo.
+        collaboratori: brano.collaboratori ?? null,
         artista: {
             id: brano.artista_id,
             nome: brano.artista_nome,

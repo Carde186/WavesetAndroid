@@ -59,24 +59,130 @@ describe('Novità', () => {
 });
 
 describe('Esplora per genere', () => {
-    test('generi: prima quelli degli artisti seguiti, poi alfabetico', async () => {
-        const nomi = async sessione =>
-            (await chiama('/generi', { sessione })).dati.map(g => g.nome);
+    // Fixture di test, non un artista del catalogo reale: mai seguita da
+    // nessuno (serve a "suggerimenti"), genere Techno (serve a "filtro per
+    // genere") — creata e cancellata qui, non tocca Carl Cox, Charlotte de
+    // Witte né i follow/playlist esistenti. Le assunzioni "il catalogo ha
+    // esattamente 4 artisti" e "Nova Circuit è l'unico Techno" non reggono
+    // più da quando il catalogo reale curato esiste (CLAUDE.md, "Catalogo
+    // reale") — questa fixture rende i due test sotto veri indipendentemente
+    // da quanti altri artisti Techno esistano in un dato momento.
+    let artistaFixture;
 
-        // House, Techno e Trance hanno un artista seguito da A;
-        // Drum and Bass nessuno, quindi scende in fondo.
-        assert.deepEqual(await nomi(utenteA), [
-            'House',
-            'Techno',
-            'Trance',
-            'Drum and Bass',
-        ]);
-        assert.deepEqual(await nomi(utenteB), [
-            'Drum and Bass',
-            'House',
-            'Techno',
-            'Trance',
-        ]);
+    before(async () => {
+        const [risultato] = await db.query(
+            'INSERT INTO artista (nome) VALUES (?)',
+            ['Artista Fixture Esplora Genere'],
+        );
+        artistaFixture = risultato.insertId;
+
+        const [[{ id: genereTechnoId }]] = await db.query(
+            "SELECT id FROM genere WHERE nome = 'Techno'",
+        );
+        await db.query(
+            'INSERT INTO artista_genere (artista_id, genere_id) VALUES (?, ?)',
+            [artistaFixture, genereTechnoId],
+        );
+    });
+
+    after(async () => {
+        // Cascata su artista_genere (FK ON DELETE CASCADE, vedi
+        // 01_schema.sql): una sola DELETE basta.
+        await db.query('DELETE FROM artista WHERE id = ?', [artistaFixture]);
+    });
+
+    describe('generi: prima quelli degli artisti seguiti, poi alfabetico', () => {
+        // Il numero di generi nel catalogo NON è fisso (CLAUDE.md,
+        // "Catalogo reale": "Elettronica" è stato aggiunto dopo che questo
+        // test era stato scritto con un elenco di 4 nomi a mano, e si è
+        // rotto per questo motivo esatto). Le tre proprietà sotto sono
+        // verificate separatamente, sempre a partire dai conteggi reali nel
+        // database (mai un elenco di nomi scritto a mano), più un genere
+        // fixture per dimostrare che un genere nuovo non viene escluso.
+        let genereFixtureId;
+        const NOME_GENERE_FIXTURE = 'Zzz Genere Fixture Novità';
+
+        before(async () => {
+            const [risultato] = await db.query(
+                'INSERT INTO genere (nome) VALUES (?)',
+                [NOME_GENERE_FIXTURE],
+            );
+            genereFixtureId = risultato.insertId;
+        });
+
+        after(async () => {
+            await db.query('DELETE FROM genere WHERE id = ?', [
+                genereFixtureId,
+            ]);
+        });
+
+        async function conteggiPerUtente(utenteId) {
+            const [righe] = await db.query(
+                `SELECT g.nome, COUNT(ua.artista_id) AS seguiti
+                 FROM genere g
+                 LEFT JOIN artista_genere ag ON ag.genere_id = g.id
+                 LEFT JOIN utente_artista ua
+                     ON ua.artista_id = ag.artista_id AND ua.utente_id = ?
+                 GROUP BY g.id, g.nome`,
+                [utenteId],
+            );
+            return righe;
+        }
+
+        test('i generi con almeno un follow vengono tutti prima di quelli senza', async () => {
+            const conteggi = await conteggiPerUtente(utenteA.utente.id);
+            const conSeguiti = new Set(
+                conteggi.filter(r => r.seguiti > 0).map(r => r.nome),
+            );
+            const senzaSeguiti = new Set(
+                conteggi.filter(r => r.seguiti === 0).map(r => r.nome),
+            );
+            // Il confronto sotto proverebbe poco se uno dei due gruppi
+            // fosse vuoto: A deve seguire qualcosa in un genere e nulla in
+            // almeno un altro (vero per il seed, vedi intestazione file).
+            assert.ok(conSeguiti.size > 0);
+            assert.ok(senzaSeguiti.size > 0);
+
+            const { dati } = await chiama('/generi', { sessione: utenteA });
+            const nomi = dati.map(g => g.nome);
+
+            const ultimoConSeguiti = Math.max(
+                ...nomi.map((n, i) => (conSeguiti.has(n) ? i : -1)),
+            );
+            const primoSenzaSeguiti = Math.min(
+                ...nomi.map((n, i) => (senzaSeguiti.has(n) ? i : Infinity)),
+            );
+            assert.ok(
+                ultimoConSeguiti < primoSenzaSeguiti,
+                'ogni genere seguito deve precedere ogni genere non seguito',
+            );
+        });
+
+        test('a parità di follower, i generi sono in ordine alfabetico', async () => {
+            // B non segue nessuno (vedi intestazione file): TUTTI i generi
+            // hanno seguiti=0 per lui, quindi l'intera lista è un unico
+            // gruppo — il confronto più diretto possibile per questa
+            // proprietà, senza bisogno di isolare i sottogruppi a parità di
+            // conteggio.
+            const conteggi = await conteggiPerUtente(utenteB.utente.id);
+            assert.ok(conteggi.every(r => r.seguiti === 0));
+
+            const { dati } = await chiama('/generi', { sessione: utenteB });
+            const nomi = dati.map(g => g.nome);
+            const attesi = [...nomi].sort((a, b) => a.localeCompare(b));
+
+            assert.deepEqual(nomi, attesi);
+        });
+
+        test('un genere nuovo, senza nessun follower, compare comunque — non un numero fisso di elementi', async () => {
+            const { dati } = await chiama('/generi', { sessione: utenteB });
+            const nomi = dati.map(g => g.nome);
+
+            assert.ok(
+                nomi.includes(NOME_GENERE_FIXTURE),
+                'un genere aggiunto al catalogo deve comparire, qualunque sia il totale attuale',
+            );
+        });
     });
 
     test('suggerimenti: esclusi gli artisti già seguiti, solo per chi segue', async () => {
@@ -86,12 +192,17 @@ describe('Esplora per genere', () => {
             );
 
         const perA = await ids(utenteA);
-        assert.ok(perA.length > 0);
+        // Esplicito: nessuno degli artisti seguiti da A compare.
         assert.ok(perA.every(id => !SEGUITI_DA_A.includes(id)));
+        // Esplicito: un artista pertinente e non seguito compare comunque
+        // (la fixture, mai seguita da nessuno) — non solo "la lista non è
+        // vuota".
+        assert.ok(perA.includes(artistaFixture));
 
-        // Anonimo e B vedono tutti gli artisti.
-        assert.equal((await ids()).length, 4);
-        assert.equal((await ids(utenteB)).length, 4);
+        // Anonimo e B non seguono nessuno: il filtro non deve escludere
+        // la fixture (né altro) per loro. Nessun numero totale fisso.
+        assert.ok((await ids()).includes(artistaFixture));
+        assert.ok((await ids(utenteB)).includes(artistaFixture));
     });
 
     test('ordine per numero di follower, poi per nome', async () => {
@@ -117,10 +228,24 @@ describe('Esplora per genere', () => {
     });
 
     test('filtro per genere invariato', async () => {
-        const nomi = (await chiama('/artisti?genere_id=1')).dati.map(
-            a => a.nome,
+        const [[{ id: genereTechnoId }]] = await db.query(
+            "SELECT id FROM genere WHERE nome = 'Techno'",
         );
 
-        assert.deepEqual(nomi, ['Nova Circuit']);
+        const { dati } = await chiama(`/artisti?genere_id=${genereTechnoId}`);
+
+        // Ogni artista restituito appartiene davvero al genere richiesto:
+        // verificato contro artista_genere (la tabella, non la query
+        // applicativa che si sta testando), non assunto dal filtro.
+        const [membri] = await db.query(
+            'SELECT artista_id FROM artista_genere WHERE genere_id = ?',
+            [genereTechnoId],
+        );
+        const idAppartenenti = new Set(membri.map(r => r.artista_id));
+        assert.ok(dati.every(a => idAppartenenti.has(a.id)));
+
+        // Almeno la fixture (genere Techno) è inclusa: non si assume che
+        // Nova Circuit sia l'unico artista Techno.
+        assert.ok(dati.some(a => a.id === artistaFixture));
     });
 });

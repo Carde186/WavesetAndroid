@@ -10,6 +10,7 @@ const routeAlbum = require('./routes/album');
 const routeArtisti = require('./routes/artisti');
 const routeAutenticazione = require('./routes/autenticazione');
 const routeBrani = require('./routes/brani');
+const routeDeezer = require('./routes/deezer');
 const routeEventi = require('./routes/eventi');
 const routeGeneri = require('./routes/generi');
 const routeNovita = require('./routes/novita');
@@ -33,6 +34,9 @@ function creaApp() {
     // Middleware montato solo su /api/playlist: su '/api' intercetterebbe
     // anche gli URL inesistenti del catalogo (401 al posto di 404).
     app.use('/api/playlist', richiediAutenticazione, routePlaylist);
+    // Sezione "Scopri su Deezer" in Home: sola lettura, riservata a utenti
+    // autenticati (non un requisito di ruolo ADMIN come le route sotto).
+    app.use('/api/deezer', richiediAutenticazione, routeDeezer);
     // Prima route riservata al ruolo ADMIN del progetto (coda di revisione
     // Ticketmaster): protetta anche qui, non basta nascondere le schermate
     // lato app.

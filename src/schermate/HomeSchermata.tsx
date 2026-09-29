@@ -16,10 +16,12 @@ import {
     recuperaNovita,
 } from '../api/catalogo';
 import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
+import CartaAccediDeezer from '../componenti/CartaAccediDeezer';
 import CartaNovita from '../componenti/CartaNovita';
 import OverlayRicerca from '../componenti/OverlayRicerca';
 import Pillola from '../componenti/Pillola';
 import RigaElenco from '../componenti/RigaElenco';
+import SezioneScopriDeezer from '../componenti/SezioneScopriDeezer';
 import TitoloSezione from '../componenti/TitoloSezione';
 import type {
     ArtistaSintetico,
@@ -233,6 +235,13 @@ function HomeSchermata({ navigation }: Props) {
                         ))}
                     </View>
                 )}
+
+                {/* "In evidenza su Deezer" per chi ha fatto accesso (dati
+                    Deezer live, nessun id del catalogo locale, quindi
+                    separata dalle righe sopra invece che mescolata alla
+                    lista artisti); da anonimo, invito ad accedere al posto
+                    suo, senza chiamare Deezer. */}
+                {utente ? <SezioneScopriDeezer /> : <CartaAccediDeezer />}
             </ScrollView>
 
             {/* La tastiera si chiude aprendo un dettaglio: al ritorno la

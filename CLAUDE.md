@@ -231,6 +231,8 @@ Modifiche rispetto allo spec iniziale, decise durante la progettazione:
 | **EventArtist (lineup)** (2) | Aggiunto `id_attraction_ticketmaster`, il candidato trovato dall'import in attesa di conferma; NULL per il lineup inserito a mano. |
 | **Event↔Artist (lineup)** | Resta N:N pura. Nessun campo "ruolo" (headliner/opening act) in v1 — rimandato al futuro. |
 | **User↔Artist (follow)** | Join implicito, nessun attributo aggiuntivo. |
+| **Artist** (3) | Aggiunti `immagine_autore`, `immagine_licenza`, `immagine_fonte_url`, `immagine_modificata` (`backend/db/init/11_credito_immagine_schema.sql`) — credito per una foto a licenza libera (Wikimedia Commons). NULL/false per il seed dimostrativo (placeholder senza licenza da citare); popolati solo per le foto reali verificate — vedi "Catalogo reale" sotto "Integrazioni esterne". Il frontend mostra il credito (`CreditoFoto.tsx`, solo in Dettaglio artista) solo quando `immagine_autore` non è NULL. |
+| **Song** (2) | Aggiunto `collaboratori` (VARCHAR nullable, `backend/db/init/12_collaboratori_brano_schema.sql`, **proposta scritta, migrazione non ancora eseguita**) — testo libero per un artista accreditato ma assente dal titolo ufficiale (es. "In the Name of Love" di Martin Garrix, feat. Bebe Rexha solo nel campo artista di Apple/Spotify). Mai una relazione N:N: `Song.artista_id` resta l'unico titolare (N:1, invariato) — il collaboratore non ha una propria pagina/follow/discografia. Popolata SOLO se il nome non compare già nel titolo (altrimenti resta NULL — mai un doppione con un "(feat. ...)" già nel titolo). Scrittura riservata a uno script a sé (`backend/scripts/popolaCollaboratoriBrani.js`, stesso principio "mai un UPDATE automatico" di `correggiLotto1.js`), mai un effetto collaterale dell'import principale. Frontend: riga aggiuntiva non tappabile "Con {collaboratori}" in `IntestazioneDettaglio` (solo Dettaglio brano), con lo stesso controllo anti-duplicazione lato client. |
 
 ## Ruoli e permessi
 
@@ -330,7 +332,9 @@ l'AI propone, non decide da sola.
 
 - **Home**: feed "Novità" (brani/eventi recenti degli artisti seguiti) in
   cima; sotto, sezione "Esplora per genere" (per chi non segue ancora
-  nessuno, o per utenti anonimi)
+  nessuno, o per utenti anonimi); in fondo, solo per chi ha fatto accesso,
+  "In evidenza su Deezer" (artista/album fissi, sola lettura, live — vedi
+  "Integrazioni esterne"); da anonimo, al suo posto un invito ad accedere
 - **Dettaglio artista**: bio, Segui, lista Brani (bottone Spotify per riga),
   sezione Album, Prossimi eventi
 - **Dettaglio brano**: titolo, artista, data pubblicazione, bottone Spotify,
@@ -401,14 +405,185 @@ nel nuovo backend Node; se no, va scritto ex novo.
 
 ## Integrazioni esterne
 
-**Fonte e strategia per il catalogo reale — non ancora decise.** Non è
-deciso se si userà Spotify, Deezer, entrambi o nessuno dei due; non è
-deciso se un eventuale import sarà una tantum o continuo; non è deciso come
-sarà consentita/gestita la conservazione dei dati importati (attribuzione,
-persistenza, limiti di ciascun servizio). **Finché questa decisione non
-viene presa, il catalogo resta quello dimostrativo** (`backend/db/init/02_seed.sql`,
-con i suoi placeholder) — nessuna modifica al seed è stata fatta in questa
-esplorazione.
+**Catalogo reale — curato a mano, non importato da Spotify/Deezer.** Decisione
+presa dopo aver verificato i Termini ufficiali di entrambi (storage/caching
+delle immagini vietato o non chiarito, vedi commit precedenti): niente
+import di massa, niente immagini Spotify/Deezer nel catalogo. Fonte scelta
+per identità/discografia: **MusicBrainz** (dati aperti, licenza CC0),
+verificata voce per voce (MBID, non il primo risultato per nome — rischio
+omonimi reale: sia "Carl Cox" sia "Paul Kalkbrenner" hanno un secondo
+artista omonimo su MusicBrainz). Fonte per le foto artista:
+**Wikimedia Commons**, solo file con licenza libera verificata
+singolarmente (pagina del file, autore, licenza, soggetto — mai un'immagine
+presa da una ricerca senza controllare la licenza). Copertine album: se
+nessuna ha una licenza libera verificata (caso frequente: l'artwork
+commerciale ufficiale quasi mai lo è, e la Cover Art Archive di MusicBrainz
+non è usata per questo motivo), `copertina_url` resta NULL — fallback già
+gestito da `Immagine.tsx` (icona nota musicale), nessun codice nuovo
+necessario.
+
+**Primo lotto (Carl Cox, Charlotte de Witte)** — script idempotente
+`backend/scripts/importaCatalogoRealeLotto1.js` (anteprima di default,
+`--applica` per scrivere; stesso pattern di
+`ricalcolaLineupEventiEsistenti.js`): cerca ogni artista per nome prima di
+inserire, non tocca mai una riga già presente, sicuro sia su un DB nuovo sia
+su uno già avviato, mai un `UPDATE`. Richiede prima lo schema di
+`backend/db/init/11_credito_immagine_schema.sql` (colonne di credito foto
+su `artista`, vedi "Modello dati"). **Applicato** al database in uso (Carl
+Cox e Charlotte de Witte presenti, id assegnati dall'auto-increment — mai
+dati per scontati altrove, sempre cercati per nome). Per ogni traccia di un
+album si è verificato l'artist-credit singolo, non dedotto dall'album: la
+release omonima di Charlotte de Witte include anche brani con featuring
+(XSALT, Comma Dee, Lisa Gerrard, Alice Evermore) — esclusi, lo schema
+Brano→Artista è N:1 e un featuring non ci entra senza travisare la
+paternità.
+
+**Featuring nascosto su 2 brani Carl Cox, trovato solo incrociando le
+fonti** — "Short Black" e "We Rob Together" erano stati importati come
+"solo Carl Cox": corretto controllando anche il singolo `recording`
+MusicBrainz (non solo la tracklist della release), che per queste due
+tracce **non ha mai avuto il featuring registrato** — non un errore di
+lettura, un dato genuinamente meno completo di MusicBrainz rispetto ai
+metadati ufficiali usati da Apple ("feat. Juanita Timpanaro" / "feat. The
+Digital Primate" nel titolo) e Spotify (stesso featuring nell'array
+`artists`). Lezione: MusicBrainz da solo non basta nemmeno quando sembra
+concludente, va sempre incrociato con almeno un'altra fonte prima di
+escludere un featuring. Corretto con lo schema attuale (Brano→Artista
+resta N:1): il featuring entra nel titolo, come fa Apple —
+`"Short Black (feat. Juanita Timpanaro)"`,
+`"We Rob Together (feat. The Digital Primate)"`. Correzione **coordinata**
+in tre punti, per lo stesso motivo per cui `assicuraBrano` non fa mai un
+`UPDATE` automatico su una riga già presente (rinominare senza coordinare
+rischierebbe un duplicato al prossimo `--applica`):
+1. `LOTTO` in `importaCatalogoRealeLotto1.js` porta già i titoli corretti,
+   con `titoliPrecedenti: ['Short Black']` / `['We Rob Together']` —
+   `assicuraBrano` cerca sia il titolo nuovo sia quelli precedenti, così
+   riconosce la riga già presente indipendentemente dall'ordine in cui
+   questo script e la correzione sotto vengono lanciati, senza mai
+   duplicare.
+2. `backend/scripts/correggiLotto1.js` (one-off, **separato** dall'import
+   normale, stesso principio "mai un UPDATE automatico" per l'import ma
+   qui è esattamente l'azione ADMIN a sé che quel principio rimanda):
+   rinomina le 2 righe già presenti nel database in uso e popola
+   `url_spotify` sui 6 brani reali (oggi tutti `NULL`) — non sovrascrive
+   mai un `url_spotify` già presente. Anteprima di default, `--applica` per
+   scrivere, verifica esplicita che il titolo nuovo non esista già prima di
+   rinominare, ricontrollo a freddo immediatamente prima di ogni
+   `UPDATE`. **Verificato in anteprima, non ancora applicato** — vedi
+   "Stato di avanzamento".
+3. `assicuraBrano` non aggiorna **mai** `url_spotify` su un brano già
+   presente (stesso principio "mai un UPDATE" di `assicuraArtista`): lo
+   popola solo sull'`INSERT` di un brano nuovo (DB nuovo/clonato). Per un
+   DB già avviato, popolarlo sui brani già importati è compito esclusivo
+   dello script di correzione sopra.
+
+**Link Apple Music (traccia) e Spotify (album)** — offerti insieme dove
+verificati, mai un link simulato: `backend/src/itunes/linkBrano.js` e
+`backend/src/spotify/linkAlbum.js`, mappature **statiche** (nome artista +
+titolo → link), mai una chiamata Apple/Spotify a runtime per "ritrovare" un
+link già noto e verificato in precedenza — a differenza della copertina
+Apple (`copertina.js`), che resta dal vivo perché l'immagine non è mai
+salvata. Id di traccia Apple fissi (mai cercati per somiglianza del titolo
+in una tracklist live: rischierebbe di abbinare il brano sbagliato).
+Endpoint `GET /album/:id/link-spotify` e `GET /brani/:id/link-apple`,
+entrambi scoped (solo id locali già esistenti, mai un id Apple/Spotify a
+piacere del client) e con nomi di campo diversi apposta
+(`link_store` vs `link_traccia`) per non poter confondere un link album con
+un link brano nemmeno a livello di tipo. Componenti frontend
+`AnteprimaLinkSpotifyAlbum`/`AnteprimaLinkAppleBrano` (Dettaglio
+album/brano): se il backend non risponde con un link, non rendono nulla —
+mai un badge isolato senza una destinazione verificata. Nelle righe di
+tracklist (liste, non il Dettaglio dedicato) resta solo il bottone Spotify
+già esistente: un badge Apple Music intero non entra in una riga da 48px,
+niente da "simulare" riusando il link dell'album per una singola traccia.
+
+**Pulizia url_spotify fittizi del seed dimostrativo** — i 4 brani demo con
+`url_spotify` inventato (id `0000000000000000000001`..`004`, mai stati veri)
+corretti a `NULL` in `02_seed.sql` (per un DB nuovo/clonato) e con
+`backend/scripts/pulisciUrlSpotifyFittizioSeed.js` per il database in uso
+(anteprima di default, mira solo a quei 4 valori esatti, nessun altro
+`url_spotify` toccato). **Applicato** al database in uso (`npm test`:
+121/121 all'epoca, verificato).
+
+**Lotti 2-5 (Avicii, Alesso, Fred again.., ODESZA, Calvin Harris, David
+Guetta, Martin Garrix, Kygo)** — stessi 10 artisti reali concordati (i due
+del lotto 1 restano invariati), stesso principio di idempotenza, ma con tre
+casi che il lotto 1 non aveva, gestiti da una nuova infrastruttura
+condivisa `backend/scripts/catalogoRealeCondiviso.js` (il lotto 1 resta
+com'è, non ne dipende):
+
+- **Un artista con più di un album**: Kygo ("KYGO" 2024 e "Cloud Nine"
+  2016) e David Guetta ("Just a Little More Love" 2002 e "Nothing But the
+  Beat Ultimate" 2011) — voce lotto con `albums: [...]`, non più un
+  singolo `album` come nel lotto 1.
+- **Un brano senza album** (`album_id` NULL): i 2 singoli di Martin Garrix
+  ("Animals", "Ocean (feat. Khalid)" — non ha, ad oggi, un album Spotify/
+  Apple con brani a paternità singola o rappresentativa) e "Marea (we've
+  lost dancing)" di Fred again.. — voce lotto con `singoli: [...]`. I link
+  Apple/Spotify di questi brani dipendono solo dal brano stesso (chiave
+  naturale artista+titolo in `linkBrano.js`, colonna `url_spotify` sul
+  brano), mai da un album locale: la UI già gestiva questo caso
+  (`{brano.album && (...)}` in `DettaglioBranoSchermata.tsx`), nessuna
+  modifica frontend necessaria.
+- **Creazione di un genere non ancora esistente**: "Elettronica"
+  (approvato per Fred again.. e ODESZA — "House", l'unico genere
+  elettronico già presente, li descrive solo per approssimazione; gli
+  altri 6 artisti restano "House"). `assicuraGenereCreaSeMancante()` lo
+  crea, se manca, **dentro la stessa transazione** del lotto che lo usa
+  (lotto 3, Fred again..+ODESZA) — mai come genere vuoto inserito a sé:
+  Home mostrerebbe una pillola "Esplora per genere" senza nessun artista
+  finché il lotto non viene applicato per intero.
+
+Caso particolare: l'album "Cloud Nine" di Kygo **non ha un prodotto Apple
+corrispondente** (ricerca "Kygo Cloud Nine" sullo store IT: zero
+risultati) — ha solo una voce in `spotify/linkAlbum.js` (link Spotify
+all'album), nessuna in `itunes/copertina.js`: il Dettaglio album mostra
+solo il pulsante Spotify. Il brano "Firestone", nel proprio Dettaglio
+brano, mostra comunque entrambi i link (Apple al singolo — l'unico
+prodotto Apple esistente per questo brano — e Spotify), perché
+`linkBrano.js` non dipende dall'album.
+
+Featuring reali mostrati nel titolo del brano solo dove **l'edizione Apple
+lo usa davvero a livello di singolo brano** (mai inventato, e mai dedotto
+dal solo array `artists` di Spotify, che spesso elenca un featuring senza
+che il titolo lo dica): es. "Titanium (feat. Sia)" (entrambe le
+piattaforme), "Heroes (we could be) (feat. Tove Lo)" e "Say My Name (feat.
+Zyra)" e "Firestone (feat. Conrad Sewell)" (solo Apple, adottato comunque
+— stessa asimmetria già vista per "Short Black" di Carl Cox). Scartato
+invece "In the Name of Love" di Martin Garrix (feat. Bebe Rexha secondo
+l'array artisti di entrambe le piattaforme, ma **nessuna delle due mette
+mai "feat." nel titolo del brano**, nemmeno a livello di singolo brano) —
+sostituito con "Ocean (feat. Khalid)", dove il "feat." è reale nel titolo
+su entrambe le piattaforme.
+
+**Scritto e testato** (`backend/scripts/importaCatalogoRealeLotto{2,3,4,5}.js`,
+`backend/test/catalogoRealeCondiviso.test.js`,
+`backend/test/linkEsterniLotti2345.test.js` — intera suite backend 181/181),
+**non ancora applicato al database in uso**: anteprima di ciascun lotto
+mostrata e confermata riga per riga prima di ogni `--applica`, come per il
+lotto 1.
+
+Due proprietà di sicurezza verificate con test dedicati
+(`backend/test/catalogoRealeLotto1.test.js`), non solo assunte: (1) nessuna
+delle tabelle coinvolte ha un vincolo UNIQUE sulla chiave naturale (nome
+artista; titolo+artista per album/brano — vedi `01_schema.sql`), quindi se
+la stessa chiave combacia con più righe lo script **si ferma con un
+errore**, non ne sceglie una arbitrariamente; (2) `applicaLotto` apre e
+chiude la propria transazione (non il chiamante): un errore a metà annulla
+tutto il lotto già scritto in quella chiamata, non solo la voce fallita —
+e un crash del processo lascia comunque il database invariato (rollback
+automatico di MySQL sulla connessione interrotta, anche se il `catch` di
+questo script non fa in tempo a girare).
+
+Distinzione da tenere sempre a mente, tre categorie diverse nello stesso
+catalogo: **seed dimostrativo** (`02_seed.sql`, dati/nomi inventati,
+placeholder picsum.photos — mai definitivo); **catalogo reale curato** (Carl
+Cox/Charlotte de Witte **applicati**; Avicii, Alesso, Fred again.., ODESZA,
+Calvin Harris, David Guetta, Martin Garrix, Kygo **scritti e testati, non
+ancora applicati** — stessi principi, dati verificati uno per uno, foto con
+credito visibile); **anteprime Deezer** (ADMIN e "In evidenza su Deezer" in
+Home, sotto — dal vivo, sola lettura, mai scritte nel database, indipendenti
+dal catalogo che si sfoglia).
 
 Sono state esplorate due integrazioni musicali, entrambe **live e di sola
 lettura**, come anteprime **ADMIN** separate dal catalogo — non un seed, mai
@@ -467,6 +642,22 @@ bianca per il tema scuro, nera per il tema chiaro. Provato sul telefono,
 funziona (percorso normale). Gestione separata di dato assente/guasto
 (album/brani non trovati per davvero vs errore di rete o quota) verificata
 solo con test automatici mockati, non a mano.
+
+**"In evidenza su Deezer" in Home** — terza superficie Deezer, distinta
+dall'anteprima ADMIN sopra: sezione nella Home stessa (non in Profilo),
+visibile a **qualunque utente autenticato**, non solo ADMIN.
+`GET /api/deezer/scopri` (`backend/src/routes/deezer.js`, dietro
+`richiediAutenticazione` ma senza `richiediRuolo`) riusa la stessa
+orchestrazione dell'anteprima ADMIN, estratta in
+`backend/src/deezer/anteprima.js` per non duplicarla, ma con lo stesso
+artista/album fissi e **senza campi immagine** nella risposta (mai
+copertina/foto, solo nome, titolo, durata, link) — reso in Home come testo
+e link "Ascolta"/"Apri" su Deezer, mai come card di ricerca: niente
+Segui/Aggiungi a playlist (questi risultati non hanno un id del catalogo
+locale). Da anonimo, al suo posto compare `CartaAccediDeezer` (invito ad
+accedere, bottone verso il tab Profilo) — nessuna chiamata a Deezer finché
+non c'è una sessione. Catalogo locale, follow e playlist restano del tutto
+separati e invariati in entrambi i casi.
 
 **Google Maps** — Maps JavaScript API (web) / `react-native-maps` (mobile),
 marker personalizzati con logo artista. Usata per intero, senza versioni
@@ -629,17 +820,54 @@ procede, spuntando cosa è fatto:
       "Integrazioni esterne"). Dati di prova (artista temporaneo, 9 eventi)
       ricalcolati e poi rimossi con pulizia verificata in transazione,
       nessun residuo nel seed. Verificato a mano sul telefono: coda,
-      correzione, conferma collegamento, approva, scarta
+      correzione, conferma collegamento, approva, scarta. **Stato attuale
+      del database (verificato via query diretta)**: 4 eventi, tutti
+      `fonte = 'manuale'` — sono i 4 eventi demo di `06_eventi_seed.sql`
+      (date 2027 scelte per superare il filtro "Prossimi eventi >= oggi",
+      titoli inventati), **non un residuo di un import Ticketmaster**: al
+      momento non c'è alcun evento con `fonte = 'ticketmaster'` nel
+      database — l'integrazione è pronta e testata, ma la coda è vuota
 - [ ] Assistente AI per la coda di revisione (solo Fullstack)
-- [ ] Bottone Spotify + seed catalogo via Spotify Client Credentials —
-      **il seed vero non è ancora iniziato**. Esistono invece due anteprime
-      ADMIN di sola lettura, indipendenti dal catalogo/seed, scritte e
-      verificate a mano sul telefono: **Anteprima Spotify**
-      (`GET /api/admin/spotify/anteprima`, richiede
+- [x] Bottone Spotify + copertina/link Apple — vedi "Integrazioni esterne".
+      Esistono anche due anteprime ADMIN di sola lettura, indipendenti dal
+      catalogo/seed: **Anteprima Spotify** (`GET
+      /api/admin/spotify/anteprima`, richiede
       `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` — senza, risponde 503 in
-      modo controllato, il resto dell'app resta invariato) e **Anteprima
-      Deezer** (`GET /api/admin/deezer/anteprima`, API pubblica, nessuna
-      chiave) — vedi "Integrazioni esterne"
+      modo controllato) e **Anteprima Deezer** (`GET
+      /api/admin/deezer/anteprima`, API pubblica, nessuna chiave). In più,
+      in Home per chi ha fatto accesso, **"In evidenza su Deezer"** (`GET
+      /api/deezer/scopri`, testo e link, niente immagini) — vedi
+      "Integrazioni esterne".
+      - **Lotto 1** (Carl Cox, Charlotte de Witte): **applicato** al
+        database in uso — schema credito foto, artisti/album/brani,
+        correzione featuring, `url_spotify` sui 6 brani, pulizia dei 4
+        `url_spotify` fittizi del seed demo. Copertina Apple dal vivo +
+        badge, link Apple/Spotify a livello brano/album: **implementati e
+        verificati** (121/121 test).
+      - **Lotti 2-5** (Avicii, Alesso, Fred again.., ODESZA, Calvin Harris,
+        David Guetta, Martin Garrix, Kygo — 10 artisti reali in totale con
+        Carl Cox/Charlotte de Witte): script e mappature Apple/Spotify
+        **scritti e testati** (intera suite backend, 181 test, tutti
+        verdi), **non ancora
+        applicati al database in uso** — in attesa di conferma esplicita
+        lotto per lotto. Introducono tre casi nuovi rispetto al lotto 1,
+        gestiti da `scripts/catalogoRealeCondiviso.js` (infrastruttura
+        condivisa dai lotti 2+, lotto 1 resta invariato): un artista con
+        più di un album (Kygo, David Guetta), un brano senza album — `
+        album_id` NULL (i 2 singoli di Martin Garrix, "Marea" di Fred
+        again..) — e la creazione di un genere non ancora esistente
+        (**"Elettronica"**, per Fred again.. e ODESZA: gli altri 6 restano
+        "House", approssimazione più vicina fra i generi esistenti;
+        "Elettronica" viene creato — mai come genere vuoto — solo insieme
+        al lotto 3, dentro la stessa transazione dei due artisti che lo
+        usano). Caso particolare: l'album "Cloud Nine" di Kygo non ha un
+        prodotto Apple corrispondente (verificato: nessun risultato sullo
+        store IT) — ha solo il link Spotify all'album; il singolo
+        "Firestone" mostra comunque entrambi i link (Apple e Spotify) nel
+        proprio Dettaglio brano. Featuring reali mostrati nel titolo del
+        brano solo dove l'edizione Apple lo usa davvero (mai inventato) —
+        vedi "Integrazioni esterne" per i dettagli verificati brano per
+        brano.
 - [ ] Impostazioni (tema chiaro/scuro + sezione Account)
 - [ ] Recensioni brani/album (solo Fullstack)
 - [ ] Localizzazione IT/EN (solo Fullstack, solo se avanza tempo)

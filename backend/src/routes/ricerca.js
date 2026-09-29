@@ -57,7 +57,7 @@ async function cerca(req, res) {
     // Brani cercati solo per titolo: cercando un artista lo si trova nella
     // sezione Artisti, senza ripeterne qui tutti i brani.
     const [brani] = await pool.query(
-        `SELECT b.id, b.titolo, b.data_pubblicazione, b.url_spotify,
+        `SELECT b.id, b.titolo, b.data_pubblicazione, b.url_spotify, b.collaboratori,
                 a.id AS artista_id, a.nome AS artista_nome, a.immagine_url AS artista_immagine_url,
                 al.id AS album_id, al.titolo AS album_titolo, al.copertina_url AS album_copertina_url
          FROM brano b

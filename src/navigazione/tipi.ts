@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 // Schermate di catalogo condivise tra gli stack che le ospitano (Home,
 // Eventi, Playlist): un brano raggiunto dalla playlist deve poter aprire lo
 // stesso Dettaglio artista/album di quello raggiunto dal catalogo, e un
@@ -46,7 +48,15 @@ export type ParametriTab = {
     HomeStack: undefined;
     EventiStack: undefined;
     PlaylistStack: undefined;
-    ProfiloStack: undefined;
+    // NavigatorScreenParams, non solo `undefined`: serve per poter navigare
+    // direttamente a una schermata annidata (es. da anonimo, verso
+    // "Accedi") invece di limitarsi a portare in primo piano il tab, che da
+    // solo riporta all'ultima schermata visitata in quello stack — non
+    // necessariamente Accedi, se lo stack era rimasto su Impostazioni.
+    // `| undefined` mantiene valido anche `navigate('ProfiloStack')` senza
+    // secondo argomento (vedi AvatarUtente.tsx), che porta in primo piano
+    // il tab così com'è, senza forzare una schermata precisa.
+    ProfiloStack: NavigatorScreenParams<ParametriStackProfilo> | undefined;
 };
 
 export type ParametriStackRadice = {

@@ -32,10 +32,14 @@ INSERT INTO album (titolo, data_pubblicazione, artista_id, copertina_url) VALUES
     ('Golden Hour', '2023-04-01', 2, 'https://picsum.photos/seed/golden-hour/400/400'),
     ('Frequenze Lucenti', '2021-09-15', 3, 'https://picsum.photos/seed/frequenze-lucenti/400/400');
 
+-- url_spotify sempre NULL: erano id inventati (0000000000000000000001 e
+-- successivi), mai stati veri track Spotify — rimossi per non rischiare di
+-- mostrare un link rotto una volta aggiunto il bottone "Ascolta su
+-- Spotify" a livello di dettaglio (vedi CLAUDE.md, "Catalogo reale").
 INSERT INTO brano (titolo, artista_id, album_id, data_pubblicazione, url_spotify) VALUES
-    ('Voltaggio', 1, 1, '2022-06-10', 'https://open.spotify.com/track/0000000000000000000001'),
+    ('Voltaggio', 1, 1, '2022-06-10', NULL),
     ('Rete Oscura', 1, 1, '2022-06-10', NULL),
-    ('Alba su Napoli', 2, 2, '2023-04-01', 'https://open.spotify.com/track/0000000000000000000002'),
-    ('Riflessi', 2, 2, '2023-04-01', 'https://open.spotify.com/track/0000000000000000000003'),
+    ('Alba su Napoli', 2, 2, '2023-04-01', NULL),
+    ('Riflessi', 2, 2, '2023-04-01', NULL),
     ('Portale Lucente', 3, 3, '2021-09-15', NULL),
-    ('Segnale Spezzato', 4, NULL, '2024-02-20', 'https://open.spotify.com/track/0000000000000000000004');
+    ('Segnale Spezzato', 4, NULL, '2024-02-20', NULL);

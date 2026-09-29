@@ -10,6 +10,7 @@ import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
 import Avviso from '../componenti/Avviso';
 import Bottone from '../componenti/Bottone';
 import BottoneIcona from '../componenti/BottoneIcona';
+import CreditoFoto from '../componenti/CreditoFoto';
 import IntestazioneDettaglio from '../componenti/IntestazioneDettaglio';
 import RigaElenco from '../componenti/RigaElenco';
 import StatoSchermata from '../componenti/StatoSchermata';
@@ -112,6 +113,18 @@ function DettaglioArtistaSchermata({ route, navigation }: Props) {
                             : []
                     }
                 />
+
+                {/* Solo per le foto reali a licenza libera (CLAUDE.md,
+                    "Catalogo reale"): il seed dimostrativo non ha credito
+                    da mostrare, credito_immagine è null. */}
+                {artista.credito_immagine && (
+                    <CreditoFoto
+                        autore={artista.credito_immagine.autore}
+                        licenza={artista.credito_immagine.licenza}
+                        fonteUrl={artista.credito_immagine.fonte_url}
+                        modificata={artista.credito_immagine.modificata}
+                    />
+                )}
 
                 {artista.bio && (
                     <Text className="mx-4 mt-4 text-base leading-6 text-testo-primario">

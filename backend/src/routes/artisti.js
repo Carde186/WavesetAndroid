@@ -49,7 +49,9 @@ async function dettaglioArtista(req, res) {
     const { id } = req.params;
 
     const [righeArtista] = await pool.query(
-        'SELECT id, nome, bio, immagine_url FROM artista WHERE id = ?',
+        `SELECT id, nome, bio, immagine_url,
+                immagine_autore, immagine_licenza, immagine_fonte_url, immagine_modificata
+         FROM artista WHERE id = ?`,
         [id],
     );
 
@@ -104,7 +106,33 @@ async function dettaglioArtista(req, res) {
         seguito = righeFollow.length > 0;
     }
 
-    res.json({ ...righeArtista[0], generi, brani, album, eventi, seguito });
+    const riga = righeArtista[0];
+    // credito_immagine è null per il seed dimostrativo (placeholder
+    // picsum.photos, nessuna licenza da citare) — popolato solo per le
+    // foto reali a licenza libera verificata (CLAUDE.md, "Catalogo
+    // reale"). Il frontend mostra il credito SOLO quando non è null: mai
+    // dedotto, mai mostrato "a vuoto".
+    const creditoImmagine = riga.immagine_autore
+        ? {
+              autore: riga.immagine_autore,
+              licenza: riga.immagine_licenza,
+              fonte_url: riga.immagine_fonte_url,
+              modificata: Boolean(riga.immagine_modificata),
+          }
+        : null;
+
+    res.json({
+        id: riga.id,
+        nome: riga.nome,
+        bio: riga.bio,
+        immagine_url: riga.immagine_url,
+        credito_immagine: creditoImmagine,
+        generi,
+        brani,
+        album,
+        eventi,
+        seguito,
+    });
 }
 
 async function esisteArtista(id) {

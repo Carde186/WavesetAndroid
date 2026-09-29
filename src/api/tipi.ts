@@ -34,11 +34,23 @@ export type EventoSintetico = {
     citta: string | null;
 };
 
+// Credito per una foto artista a licenza libera (Wikimedia Commons — vedi
+// CLAUDE.md, "Catalogo reale"). null per il seed dimostrativo (placeholder
+// senza licenza da citare) — mai dedotto lato frontend, sempre quello che
+// manda il backend.
+export type CreditoImmagine = {
+    autore: string;
+    licenza: string;
+    fonte_url: string;
+    modificata: boolean;
+};
+
 export type ArtistaDettaglio = {
     id: number;
     nome: string;
     bio: string | null;
     immagine_url: string | null;
+    credito_immagine: CreditoImmagine | null;
     generi: Genere[];
     brani: BranoSintetico[];
     album: AlbumSintetico[];
@@ -64,6 +76,10 @@ export type BranoDettaglio = {
     titolo: string;
     dataPubblicazione: string | null;
     urlSpotify: string | null;
+    // Solo quando il nome del collaboratore NON compare già nel titolo
+    // (vedi backend/db/init/12_collaboratori_brano_schema.sql) — mai un
+    // secondo artista con una propria pagina nel catalogo.
+    collaboratori: string | null;
     artista: ArtistaRiferimento;
     album: AlbumRiferimento | null;
 };
@@ -227,4 +243,54 @@ export type AnteprimaDeezer = {
     artista: DeezerArtista;
     album: DeezerAlbum | null;
     brani: DeezerBrano[];
+};
+
+// Sezione "Scopri su Deezer" in Home (utenti autenticati): stessa demo
+// fissa dell'anteprima ADMIN, ma senza campi immagine — il backend non li
+// invia proprio (vedi routes/deezer.js), così qui non c'è nemmeno la
+// possibilità di renderizzarli per errore.
+export type DeezerArtistaScopri = {
+    nome: string;
+    url_deezer: string | null;
+};
+
+export type DeezerAlbumScopri = {
+    titolo: string;
+    url_deezer: string | null;
+};
+
+export type DeezerBranoScopri = {
+    id: number;
+    titolo: string;
+    durata_secondi: number;
+    url_deezer: string | null;
+};
+
+export type ScopriDeezer = {
+    artista: DeezerArtistaScopri;
+    album: DeezerAlbumScopri | null;
+    brani: DeezerBranoScopri[];
+};
+
+// Copertina live da iTunes per i (soli) album reali con una mappatura
+// verificata lato backend (CLAUDE.md, "Catalogo reale") — mai per il seed
+// dimostrativo. artwork_url e link_store sono sempre presenti insieme: il
+// backend non risponde mai con uno solo dei due.
+export type CopertinaItunes = {
+    artwork_url: string;
+    link_store: string;
+};
+
+// Link Spotify ALL'ALBUM (mai un link di un singolo brano — vedi
+// LinkBranoApple sotto). Mappatura statica lato backend, stessi (soli)
+// album reali di CopertinaItunes.
+export type LinkAlbumSpotify = {
+    link_store: string;
+};
+
+// Link Apple Music ALLA TRACCIA (mai il link album — vedi
+// LinkAlbumSpotify sopra). Nome del campo deliberatamente diverso da
+// "link_store" per non poter confondere i due a livello di tipo.
+export type LinkBranoApple = {
+    link_traccia: string;
 };

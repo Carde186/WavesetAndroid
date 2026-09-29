@@ -21,22 +21,29 @@ const RAPPORTO_ASPETTO = 3432 / 940;
 // in digital." Non specificano esplicitamente se il riferimento sia altezza
 // o larghezza — qui trattata come altezza (convenzione comune per i loghi
 // orizzontali nei brand kit), verificabile solo confrontando con l'esempio
-// visivo delle linee guida, non disponibile in questa sessione.
+// visivo delle linee guida, non disponibile in questa sessione. Resta il
+// default per l'uso standalone (Anteprima Spotify ADMIN); un'altezza minore
+// è una scelta esplicita solo per l'uso accanto al badge Apple Music (vedi
+// BottoneSpotify), non una deroga generale.
 const ALTEZZA_MINIMA = 70;
+
+type Props = {
+    altezza?: number;
+};
 
 // "The black logo should be used on light colored backgrounds. The white
 // logo should be used on dark colored backgrounds." — stesso stato usato
 // da bg-sfondo in tutta l'app, non un calcolo di contrasto a parte.
-function LogoSpotify() {
+function LogoSpotify({ altezza = ALTEZZA_MINIMA }: Props) {
     const { tema } = usePreferenze();
-    const larghezza = Math.round(ALTEZZA_MINIMA * RAPPORTO_ASPETTO);
+    const larghezza = Math.round(altezza * RAPPORTO_ASPETTO);
 
     return (
         <Image
             source={tema === 'scuro' ? LOGO_BIANCO : LOGO_NERO}
             resizeMode="contain"
             accessibilityLabel="Spotify"
-            style={{ height: ALTEZZA_MINIMA, width: larghezza }}
+            style={{ height: altezza, width: larghezza }}
         />
     );
 }

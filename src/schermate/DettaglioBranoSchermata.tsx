@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ExternalLink, ListPlus } from 'lucide-react-native';
+import { ListPlus } from 'lucide-react-native';
 
 import { recuperaBrano } from '../api/catalogo';
 import {
@@ -11,8 +11,11 @@ import {
 } from '../api/playlist';
 import type { BranoDettaglio, PlaylistSintetica } from '../api/tipi';
 import { useAutenticazione } from '../autenticazione/ContestoAutenticazione';
+import AnteprimaCopertinaItunes from '../componenti/AnteprimaCopertinaItunes';
+import AnteprimaLinkAppleBrano from '../componenti/AnteprimaLinkAppleBrano';
 import Avviso from '../componenti/Avviso';
 import Bottone from '../componenti/Bottone';
+import BottoneSpotify from '../componenti/BottoneSpotify';
 import CampoTesto from '../componenti/CampoTesto';
 import Dialogo from '../componenti/Dialogo';
 import IntestazioneDettaglio from '../componenti/IntestazioneDettaglio';
@@ -102,6 +105,25 @@ function DettaglioBranoSchermata({ route, navigation }: Props) {
         );
     }
 
+    // "Con {collaboratori}" solo se il nome non compare già nel titolo
+    // ufficiale (es. "Titanium (feat. Sia)" non deve mostrare anche "Con
+    // Sia" sotto) — controllo difensivo qui, anche se i dati non
+    // dovrebbero mai arrivare duplicati (vedi
+    // backend/scripts/popolaCollaboratoriBrani.js, che si rifiuta di
+    // scrivere un collaboratore già presente nel titolo).
+    const collaboratoreDaMostrare =
+        brano.collaboratori &&
+        !brano.titolo.toLowerCase().includes(brano.collaboratori.toLowerCase())
+            ? brano.collaboratori
+            : null;
+
+    const righeIntestazione = [
+        ...(brano.dataPubblicazione
+            ? [`Pubblicato il ${formattaData(brano.dataPubblicazione)}`]
+            : []),
+        ...(collaboratoreDaMostrare ? [`Con ${collaboratoreDaMostrare}`] : []),
+    ];
+
     return (
         <View className="flex-1 bg-sfondo">
             <ScrollView contentContainerClassName="pb-24">
@@ -121,47 +143,65 @@ function DettaglioBranoSchermata({ route, navigation }: Props) {
                             artistaId: brano.artista.id,
                         })
                     }
-                    righe={
-                        brano.dataPubblicazione
-                            ? [
-                                  `Pubblicato il ${formattaData(
-                                      brano.dataPubblicazione,
-                                  )}`,
-                              ]
-                            : []
-                    }
+                    righe={righeIntestazione}
                 />
 
                 {brano.album && (
-                    <Pressable
-                        accessibilityRole="link"
-                        className="mx-4 mt-3 self-start active:opacity-70"
-                        onPress={() =>
-                            navigation.navigate('DettaglioAlbum', {
-                                albumId: brano.album!.id,
-                            })
-                        }
-                    >
-                        <Text className="text-accento">
-                            Da {brano.album.titolo}
-                        </Text>
-                    </Pressable>
+                    <>
+                        <Pressable
+                            accessibilityRole="link"
+                            className="mx-4 mt-3 self-start active:opacity-70"
+                            onPress={() =>
+                                navigation.navigate('DettaglioAlbum', {
+                                    albumId: brano.album!.id,
+                                })
+                            }
+                        >
+                            <Text className="text-accento">
+                                Da {brano.album.titolo}
+                            </Text>
+                        </Pressable>
+
+                        {/* Stesso id album del brano, quindi la stessa
+                            copertina di DettaglioAlbumSchermata per lo
+                            stesso album — mai la foto dell'artista (quella
+                            resta solo nel fallback dell'intestazione
+                            sopra). Non rende nulla per il seed
+                            dimostrativo. mostraBadge=false: il badge Apple
+                            ALBUM non compare qui, per non duplicare (con
+                            una destinazione diversa) il badge Apple BRANO
+                            poco più sotto in questa stessa schermata. */}
+                        <View className="mx-4 mt-4">
+                            <AnteprimaCopertinaItunes
+                                albumId={brano.album.id}
+                                mostraBadge={false}
+                            />
+                        </View>
+                    </>
                 )}
 
-                <View className="mx-4 mt-4 flex-row flex-wrap gap-3">
+                {/* Badge Apple Music, logo Spotify e "Aggiungi a
+                    playlist" del BRANO, un solo contenitore verticale,
+                    stesso lato — non due colonne affiancate. Ciascuno dei
+                    due link streaming non rende nulla senza una
+                    destinazione verificata (mappatura Apple assente per
+                    il seed dimostrativo; urlSpotify assente per i brani
+                    senza link): il gap non lascia spazi vuoti al posto di
+                    un elemento mancante. */}
+                <View className="mx-4 mt-4 items-start gap-4">
+                    <AnteprimaLinkAppleBrano branoId={brano.id} />
+                    {brano.urlSpotify && (
+                        <BottoneSpotify
+                            etichetta="Apri il brano su Spotify"
+                            altezza={28}
+                            onPress={() => Linking.openURL(brano.urlSpotify!)}
+                        />
+                    )}
                     <Bottone
                         etichetta="Aggiungi a playlist"
                         icona={ListPlus}
                         onPress={apriSelettorePlaylist}
                     />
-                    {brano.urlSpotify && (
-                        <Bottone
-                            etichetta="Ascolta su Spotify"
-                            variante="secondario"
-                            icona={ExternalLink}
-                            onPress={() => Linking.openURL(brano.urlSpotify!)}
-                        />
-                    )}
                 </View>
             </ScrollView>
 
