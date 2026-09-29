@@ -220,13 +220,15 @@ Modifiche rispetto allo spec iniziale, decise durante la progettazione:
 | Entità/relazione | Decisione v1 |
 |---|---|
 | **Genere** | Nuova entità, N:N con Artist. Song NON ha un genere proprio — lo eredita filtrando tramite l'artista. |
-| **Artist** | Aggiunto `immagine_url` — mai definito esplicitamente finora. Popolato dal seed Spotify (`artist.images[0].url`); finché il seed reale non c'è, usare un URL placeholder stabile nel seed temporaneo, non lasciare il campo vuoto. |
+| **Artist** | Aggiunto `immagine_url` — mai definito esplicitamente finora. Verrà popolato dal seed del catalogo reale quando fonte e strategia saranno decise (vedi "Integrazioni esterne" — non ancora Spotify con certezza); finché quella decisione non c'è, usare un URL placeholder stabile nel seed temporaneo, non lasciare il campo vuoto. |
 | **PlaylistSong** | Join esplicito Playlist↔Song con campo `aggiunto_il` (timestamp). Ordine = cronologico. Niente campo `posizione`/riordino manuale in v1. |
 | **Review** | Aggiunto vincolo di unicità (user_id, song_id). Serve supporto per la modifica, non solo la creazione. |
 | **Album** (nuova) | `titolo`, `data_pubblicazione`, `artista_id` (N:1 Artist), `copertina_url` (da `album.images[0].url` su Spotify — anche i singoli su Spotify hanno un "album" wrapper con copertina, quindi il campo è quasi sempre popolabile). `Song.album_id` nullable — un brano può non appartenere a nessun album. `Song.data_pubblicazione` è un campo a sé, indipendente da quella dell'album. |
 | **Song — immagine** | Nessun campo immagine proprio: eredita `copertina_url` dal suo Album quando esiste; se `album_id` è nullo (brano inserito a mano senza album), fallback sull'`immagine_url` dell'Artist lato frontend — non duplicare il dato nel DB. |
 | **AlbumReview** (nuova) | Gemella di Review ma per Album (stessa struttura, stesso vincolo di unicità). Entità separata per non modificare Review, già scritta e testata nel backend Spring. |
-| **Event** | Aggiunti `latitudine`/`longitudine` (numerici). Inseriti a mano dall'ADMIN per gli eventi non importati da Ticketmaster — vedi sezione Ticketmaster più sotto per l'automazione. Aggiunto anche `ora_evento` (TIME, nullable) separato da `data_evento` (DATE) — mai convertito da/a UTC, è sempre "l'ora locale del locale", non va interpretato rispetto al fuso del device che la visualizza. |
+| **Event** | Aggiunti `latitudine`/`longitudine` (numerici). Inseriti a mano dall'ADMIN per gli eventi non importati da Ticketmaster — vedi sezione Ticketmaster più sotto per l'automazione. Aggiunto anche `ora_evento` (TIME, nullable) separato da `data_evento` (DATE) — mai convertito da/a UTC, è sempre "l'ora locale del locale", non va interpretato rispetto al fuso del device che la visualizza. Aggiunti `fonte` (manuale/ticketmaster), `id_esterno`, `stato` (pubblicato/in_coda/scartato) e `motivo_revisione` per la coda di revisione ibrida — vedi "Integrazioni esterne". |
+| **Artist** (2) | Aggiunto `id_ticketmaster`, impostato SOLO da una conferma esplicita dell'ADMIN (mai in automatico, nemmeno approvando un evento) — vedi "Integrazioni esterne". |
+| **EventArtist (lineup)** (2) | Aggiunto `id_attraction_ticketmaster`, il candidato trovato dall'import in attesa di conferma; NULL per il lineup inserito a mano. |
 | **Event↔Artist (lineup)** | Resta N:N pura. Nessun campo "ruolo" (headliner/opening act) in v1 — rimandato al futuro. |
 | **User↔Artist (follow)** | Join implicito, nessun attributo aggiuntivo. |
 
@@ -252,12 +254,55 @@ Quattro responsabilità distinte, non solo "approvare eventi":
    primario per questi, non un fallback.
 3. **Coda di revisione eventi Ticketmaster** (modalità ibrida) — la maggior
    parte degli eventi importati si pubblica **automaticamente**. Finiscono in
-   coda per revisione manuale SOLO quelli che falliscono una regola:
-   - coordinate irrecuperabili (0.000000 *e* geocodifica di fallback fallita)
-   - possibile doppione (stesso artista + data + venue da rivenditori diversi)
-   - lineup ambiguo (nessuna attraction con `subType.name === "Artist"`)
-4. **Correzione dati importati da Spotify** in fase di seed (genere sbagliato,
-   bio incompleta) — l'importazione è una tantum, non un sync continuo.
+   coda per revisione manuale (`stato = 'in_coda'`, `motivo_revisione` uno o
+   più tra questi, uniti con `; `) SOLO quelli che falliscono una regola:
+   - `coordinate_irrecuperabili`: 0.000000 *e* geocodifica di fallback fallita
+   - `nessuna_attraction_riconosciuta`: nessuna attraction dell'evento, di
+     nessun subType, combacia (nome esatto, case-insensitive, trim) con un
+     artista del catalogo — **non si filtra più per `subType.name ===
+     "Artist"`**: un test con un artista reale (Carl Cox) ha mostrato che
+     Ticketmaster lo classifica `"Undefined"`, non `"Artist"` — quel filtro
+     escludeva l'headliner stesso, non solo i nomi di festival che doveva
+     escludere. Il subType non è quindi un segnale affidabile in nessuna
+     delle due direzioni e non è più usato per decidere il matching in
+     automatico: l'unica protezione resta l'uguaglianza esatta del nome più
+     la conferma umana (vedi `id_artista_da_confermare` sotto) — un nome
+     combinato tipo "Carl Cox & Eric Powell" non combacia con "Carl Cox" per
+     questo stesso motivo (uguaglianza sull'intera stringa, mai una
+     sottostringa)
+   - `lineup_non_confermato`: almeno un'attraction combacia con un ALTRO
+     artista del catalogo, ma nessuna combacia con l'artista che ha avviato
+     la ricerca
+   - `id_artista_da_confermare`: prima ricerca per nome per questo artista
+     (nessun `id_ticketmaster` ancora confermato) — va in coda ANCHE se tutto
+     il resto è pulito, apposta per una conferma umana prima di fidarsi
+     dell'attraction per le ricerche successive (mitiga il rischio di
+     omonimi: da quel momento si cerca per `attractionId`, non più per nome)
+   - `possibile_doppione`: un altro evento (qualunque fonte/stato) con
+     almeno un artista in comune, stessa data, stesso luogo, `id_esterno`
+     diverso — non si scarta mai in automatico, resta una decisione ADMIN
+
+   Schermate ADMIN dedicate (Android, dentro Profilo, protette anche lato
+   backend con `richiediRuolo('ADMIN')`, non solo nascoste in UI): **Coda
+   eventi Ticketmaster** (elenco, con motivo) e **Dettaglio evento in
+   coda** (correggere i campi, confermare un collegamento artista↔attraction
+   riga per riga, approvare o scartare). Approvare un evento NON conferma da
+   solo nessun collegamento artista↔attraction: sono due azioni separate,
+   apposta perché un evento può avere più artisti in lineup e l'ADMIN deve
+   poter confermare ciascun collegamento singolarmente.
+
+   Import: script manuale (`backend/scripts/importaTicketmaster.js`),
+   nessuno scheduler interno al backend — scelta indipendente da quella,
+   ancora aperta, per un eventuale import del catalogo reale (una tantum o
+   continuo: non deciso, vedi "Integrazioni esterne"). Un `id_esterno` già
+   presente in `evento` non viene MAI ritoccato da un import successivo,
+   qualunque sia il suo stato: così un import ripetuto non annulla mai una
+   correzione, un'approvazione o uno scarto già decisi dall'ADMIN.
+4. **Correzione dati importati nel catalogo reale**, quando quell'import
+   esisterà (es. genere sbagliato, bio incompleta) — **requisito futuro,
+   non ancora implementato**: non presume che la fonte sarà Spotify né che
+   l'import sarà una tantum, entrambe cose ancora da decidere (vedi
+   "Integrazioni esterne").
 
 Nessun ruolo di moderazione su recensioni/contenuti utente in v1 (possibile
 aggiunta futura).
@@ -307,6 +352,15 @@ l'AI propone, non decide da sola.
 - **Accedi per continuare**: mostrata su Playlist/Profilo quando l'utente non
   è loggato
 - **Tab bar**: Home / Eventi / Playlist / Profilo, con icone
+- **Coda eventi Ticketmaster** (solo ADMIN, link da Profilo): elenco degli
+  eventi importati in coda di revisione, con il motivo
+- **Dettaglio evento in coda** (solo ADMIN): correzione campi, conferma di
+  un collegamento artista↔attraction, approva/scarta — vedi "Cosa fa
+  davvero l'ADMIN"
+- **Anteprima Spotify** (solo ADMIN, link da Profilo): demo di sola lettura,
+  artista/album fissi — vedi "Integrazioni esterne"
+- **Anteprima Deezer** (solo ADMIN, link da Profilo): demo separata da
+  quella Spotify, stesso principio — vedi "Integrazioni esterne"
 
 ## Autenticazione
 
@@ -347,12 +401,72 @@ nel nuovo backend Node; se no, va scritto ex novo.
 
 ## Integrazioni esterne
 
-**Spotify** — solo Client Credentials Flow per popolare il catalogo in fase
-di seed (`/search`, `/tracks/{id}`, `/artists/{id}`, `/albums/{id}`), più un
-bottone "Ascolta su Spotify" che è un semplice link esterno
-(`external_urls.spotify` da ogni Track). **Niente OAuth, niente player
+**Fonte e strategia per il catalogo reale — non ancora decise.** Non è
+deciso se si userà Spotify, Deezer, entrambi o nessuno dei due; non è
+deciso se un eventuale import sarà una tantum o continuo; non è deciso come
+sarà consentita/gestita la conservazione dei dati importati (attribuzione,
+persistenza, limiti di ciascun servizio). **Finché questa decisione non
+viene presa, il catalogo resta quello dimostrativo** (`backend/db/init/02_seed.sql`,
+con i suoi placeholder) — nessuna modifica al seed è stata fatta in questa
+esplorazione.
+
+Sono state esplorate due integrazioni musicali, entrambe **live e di sola
+lettura**, come anteprime **ADMIN** separate dal catalogo — non un seed, mai
+scritte nel database:
+
+**Spotify** — Client Credentials Flow (`/search`, `/tracks/{id}`,
+`/artists/{id}`, `/albums/{id}`); se diventasse la fonte scelta, il bottone
+"Ascolta su Spotify" resterebbe comunque un semplice link esterno
+(`external_urls.spotify` da ogni Track), **niente OAuth, niente player
 integrato, niente preview audio** (rimosse dall'API Spotify da novembre 2024,
 permanente), **niente sync playlist**.
+
+Esiste `backend/src/servizi/spotify.js` (Client Credentials, lookup
+artista/album/brani, cache del token in memoria con margine di sicurezza) e
+un endpoint **ADMIN di sola lettura**, `GET /api/admin/spotify/anteprima`,
+che mostra dati reali (artista fisso "Carl Cox", 5 release, i brani di
+"Electronic Generations") **senza scriverli mai nel database**: è una
+dimostrazione/verifica, non collegata al catalogo o al seed dimostrativo.
+Protetto sia da `richiediAutenticazione`+`richiediRuolo('ADMIN')` lato
+backend sia dalla visibilità condizionata in Profilo — la protezione vera è
+quella del backend, la voce in UI è solo un secondo filtro. Senza
+`SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` risponde `503` in modo
+controllato, il resto dell'app resta invariato. Verificato con dati reali
+che `genres` è vuoto/assente (campo deprecato da Spotify) e che `/search`
+restituisce corrispondenze larghe, non solo il nome esatto — entrambi da
+tenere in conto **se e quando** si deciderà la fonte del seed vero.
+
+**Logo Spotify** (`src/assets/spotify/Spotify_Full_Logo_RGB_{Black,White}.png`,
+`src/componenti/LogoSpotify.tsx`): asset ufficiale scaricato invariato dal
+media kit (`developer.spotify.com`, sezione "Using our logo"), mai
+ridisegnato — versione nera o bianca scelta in base al tema chiaro/scuro
+dell'app (Branding Guidelines: nero su sfondo chiaro, bianco su sfondo
+scuro; mai la versione verde su uno sfondo che non sia nero o bianco puro).
+Provato sul telefono, in entrambi i temi: leggibile e contrastato. Restano
+due punti verificati solo per lettura del codice, non da un diagramma
+ufficiale: l'altezza minima (70px, le linee guida non specificano se sia
+l'altezza o un altro lato) e lo spazio di rispetto (metà dell'altezza
+dell'icona — qui approssimato a metà dell'altezza del logo intero).
+
+**Deezer** — seconda anteprima ADMIN di sola lettura, **schermata separata**
+da quella Spotify (`GET /api/admin/deezer/anteprima`, artista Carl Cox id
+Deezer `3951`, album "Electronic Generations" id `905333022`, fissi lato
+server). Diversa da Spotify su un punto tecnico non banale: l'API pubblica
+di Deezer non richiede token/credenziali (verificato con una sonda reale),
+ma spesso risponde HTTP 200 con un corpo `{"error": {...}}` invece di uno
+status non-2xx — `backend/src/servizi/deezer.js` controlla entrambi i casi.
+L'artista è trattato come dato essenziale (se fallisce, 502 sull'intera
+risposta); album e brani come dati che possono mancare (se falliscono, la
+risposta resta 200 con `album: null, brani: []`, l'artista si vede
+comunque). Mai il campo `preview` di Deezer (URL firmato dell'anteprima
+audio) nella risposta. Nessuna cache applicativa, nessuna persistenza.
+Logo (`src/assets/deezer/Logo-Horizontal-{Light,Dark}.png`,
+`src/componenti/LogoDeezer.tsx`): asset ufficiali forniti già scaricati
+(non ricercati né ridisegnati in questa sessione) — versione con scritta
+bianca per il tema scuro, nera per il tema chiaro. Provato sul telefono,
+funziona (percorso normale). Gestione separata di dato assente/guasto
+(album/brani non trovati per davvero vs errore di rete o quota) verificata
+solo con test automatici mockati, non a mano.
 
 **Google Maps** — Maps JavaScript API (web) / `react-native-maps` (mobile),
 marker personalizzati con logo artista. Usata per intero, senza versioni
@@ -363,19 +477,57 @@ caricamenti mappa/mese, ampiamente sufficiente).
 **Ticketmaster Discovery API** — unica fonte automatica per l'import eventi
 (niente Bandsintown, richiede partnership commerciale; niente TicketOne,
 nessuna API pubblica trovata). Credenziali già ottenute (self-service,
-gratuita). Regole:
-- Query **per nome artista/festival**, mai per genere (il filtro genere perde
-  sia i festival grandi, classificati sotto "Miscellaneous", sia gran parte
-  della scena underground italiana)
-- Script/job periodico interroga l'API per ogni artista del catalogo
+gratuita; piano gratuito: 5000 richieste/giorno, 5/secondo — l'import
+mette 250ms di pausa tra un artista e l'altro, ampiamente sotto soglia).
+Implementata in `backend/src/ticketmaster/importa.js`
+(`backend/scripts/importaTicketmaster.js` è solo il punto d'ingresso da
+terminale). Regole (v1, confermate):
+- Query **per nome artista**, mai per genere (il filtro genere perde sia i
+  festival grandi, classificati sotto "Miscellaneous", sia gran parte della
+  scena underground italiana). Si itera sugli artisti del catalogo, non su
+  una lista di festival a sé (non esiste un'entità Festival nel modello
+  dati) — un festival con un nostro artista in lineup emerge comunque dalla
+  ricerca per quell'artista, **ma senza garanzia di trovarli tutti**: un
+  festival senza nessun nostro artista in cartellone (o con lineup non
+  ancora annunciato al momento dell'import) non verrebbe trovato. Limite
+  noto, da rivedere se serve una copertura più ampia.
+- Prima ricerca per un artista: per nome (`keyword`). Dopo che l'ADMIN ha
+  confermato esplicitamente un collegamento (vedi sotto), le ricerche
+  successive per quell'artista usano `attractionId` — preciso, elimina il
+  rischio di omonimi per tutti gli import successivi al primo.
+- Un'attraction entra nel lineup SOLO con un nome esattamente identico
+  (case-insensitive, trim) a un artista del catalogo, **su qualunque
+  subType** — nessun match parziale o fuzzy: rischierebbe di aggiungere un
+  omonimo, o un nome combinato ("Carl Cox & Eric Powell") come se fosse un
+  solo artista. Il filtro `classifications[0].subType.name === "Artist"`
+  previsto inizialmente è stato rimosso dopo un test con un artista reale:
+  Ticketmaster classifica un headliner reale come `"Undefined"`, non
+  `"Artist"` (verificato, non un'ipotesi) — quel filtro escludeva
+  sistematicamente gli artisti veri, non solo i nomi di festival per cui era
+  stato pensato. Il subType non è quindi affidabile in nessuna delle due
+  direzioni: non è più usato per il matching automatico, l'unica protezione
+  resta l'uguaglianza esatta del nome più la conferma umana obbligatoria
+  (`id_artista_da_confermare` sotto).
+- `id_ticketmaster` sull'artista si imposta SOLO con un'azione ADMIN
+  esplicita ("Conferma collegamento", per singolo artista) — mai in
+  automatico, nemmeno approvando l'intero evento. Il primo abbinamento per
+  un artista va sempre in coda apposta per questa conferma (vedi "Cosa fa
+  davvero l'ADMIN").
 - Coordinate: usa `location.latitude`/`longitude` se diverse da
-  `"0.000000"`; altrimenti fallback su geocodifica dell'indirizzo
-  (`address.line1` + `city.name` + `country.name`)
-- Lineup: filtra `_embedded.attractions` tenendo solo quelle con
-  `classifications[0].subType.name === "Artist"`, per escludere il nome del
-  festival trattato come se fosse un artista
+  `"0.000000"`; altrimenti fallback su **Google Geocoding API**, stesso
+  progetto Google Cloud già usato per Maps ma con una **chiave separata**
+  (`GOOGLE_GEOCODING_API_KEY`, ristretta alla sola Geocoding API — non la
+  stessa `GOOGLE_MAPS_API_KEY` usata da Gradle) — se anche la geocodifica
+  fallisce, l'evento resta con lat/lon `NULL` e va in coda.
+- Un evento senza coordinate non può essere approvato (400 lato backend):
+  la mappa (schermata Eventi) richiede lat/lon per il marker — l'ADMIN deve
+  prima correggerle
 - Pubblicazione automatica salvo i casi da mettere in coda — vedi "Cosa fa
   davvero l'ADMIN" sopra
+- Un `id_esterno` (l'id evento Ticketmaster) già presente non viene mai
+  ritoccato da un import successivo, qualunque sia il suo stato — uno scarto
+  è un soft delete (`stato = 'scartato'`, riga non cancellata), apposta per
+  questo
 
 **Localizzazione IT/EN** (react-i18next) — richiesta esplicitamente dal
 docente. **Solo Fullstack**, implementata per ultima, solo se avanza tempo.
@@ -470,9 +622,24 @@ procede, spuntando cosa è fatto:
       e avatar utente nella top bar — verificati a mano: menu e quattro
       tipi, Standard chiara, persistenza dopo riavvio e logout, avatar nei
       vari stack e durante la ricerca)
-- [ ] Integrazione Ticketmaster (import + coda di revisione)
+- [x] Integrazione Ticketmaster (import + coda di revisione) — schema,
+      import, endpoint ADMIN e schermate Android; regola di matching
+      corretta dopo un test con un artista reale (Carl Cox): il subType di
+      Ticketmaster non è affidabile, si combacia solo per nome esatto (vedi
+      "Integrazioni esterne"). Dati di prova (artista temporaneo, 9 eventi)
+      ricalcolati e poi rimossi con pulizia verificata in transazione,
+      nessun residuo nel seed. Verificato a mano sul telefono: coda,
+      correzione, conferma collegamento, approva, scarta
 - [ ] Assistente AI per la coda di revisione (solo Fullstack)
-- [ ] Bottone Spotify + seed catalogo via Spotify Client Credentials
+- [ ] Bottone Spotify + seed catalogo via Spotify Client Credentials —
+      **il seed vero non è ancora iniziato**. Esistono invece due anteprime
+      ADMIN di sola lettura, indipendenti dal catalogo/seed, scritte e
+      verificate a mano sul telefono: **Anteprima Spotify**
+      (`GET /api/admin/spotify/anteprima`, richiede
+      `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` — senza, risponde 503 in
+      modo controllato, il resto dell'app resta invariato) e **Anteprima
+      Deezer** (`GET /api/admin/deezer/anteprima`, API pubblica, nessuna
+      chiave) — vedi "Integrazioni esterne"
 - [ ] Impostazioni (tema chiaro/scuro + sezione Account)
 - [ ] Recensioni brani/album (solo Fullstack)
 - [ ] Localizzazione IT/EN (solo Fullstack, solo se avanza tempo)

@@ -7,6 +7,7 @@ const { after, before, describe, test } = require('node:test');
 const { db, UTENTE_A, UTENTE_B, chiama, accedi, chiudi } = require('./aiuto');
 
 const TITOLO_PASSATO = 'Evento passato di prova';
+const TITOLO_IN_CODA = 'Evento in coda di prova';
 
 let utenteA;
 let utenteB;
@@ -26,10 +27,25 @@ before(async () => {
         'INSERT INTO evento_artista (evento_id, artista_id) VALUES (?, 1)',
         [risultato.insertId],
     );
+
+    // Evento futuro ma in coda (import Ticketmaster non ancora approvato
+    // dall'ADMIN): non deve comparire in nessuna lista pubblica.
+    const [risultatoInCoda] = await db.query(
+        `INSERT INTO evento (titolo, data_evento, luogo, citta, latitudine, longitudine, fonte, id_esterno, stato)
+         VALUES (?, CURDATE() + INTERVAL 1 DAY, 'Luogo', 'Città', 45.0, 9.0, 'ticketmaster', 'eventi-test-in-coda', 'in_coda')`,
+        [TITOLO_IN_CODA],
+    );
+    await db.query(
+        'INSERT INTO evento_artista (evento_id, artista_id) VALUES (?, 1)',
+        [risultatoInCoda.insertId],
+    );
 });
 
 after(async () => {
-    await db.query('DELETE FROM evento WHERE titolo = ?', [TITOLO_PASSATO]);
+    await db.query('DELETE FROM evento WHERE titolo IN (?, ?)', [
+        TITOLO_PASSATO,
+        TITOLO_IN_CODA,
+    ]);
     await chiudi();
 });
 
@@ -54,6 +70,21 @@ describe('elenco eventi', () => {
             notte.lineup.map(a => a.nome),
             ['Lucent Wave', 'Nova Circuit'],
         );
+    });
+
+    test('un evento in coda non compare, né in "tutti" né in "seguiti", né nel dettaglio', async () => {
+        const tutti = (await chiama('/eventi')).dati;
+        const seguiti = (
+            await chiama('/eventi?filtro=seguiti', { sessione: utenteA })
+        ).dati;
+
+        assert.ok(!titoli(tutti).includes(TITOLO_IN_CODA));
+        assert.ok(!titoli(seguiti).includes(TITOLO_IN_CODA));
+
+        const inCoda = tutti
+            .concat(seguiti)
+            .find(e => e.titolo === TITOLO_IN_CODA);
+        assert.equal(inCoda, undefined);
     });
 
     test('gli eventi passati non compaiono', async () => {

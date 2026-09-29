@@ -24,12 +24,17 @@ const db = mysql.createPool({
 });
 
 // Utenti del seed riservati ai test automatici (04_playlist_seed.sql e
-// 09_follow_seed.sql): i test non usano mai Alice e Bob, che servono alle
-// prove a mano (il test di logout-tutti, per esempio, chiuderebbe le loro
-// sessioni sul telefono). UTENTE_A segue Nova Circuit (1) e Lucent Wave (3),
-// UTENTE_B nessuno.
+// 09_follow_seed.sql): i test non usano mai Alice, Bob o Admin, che servono
+// alle prove a mano (il test di logout-tutti, per esempio, chiuderebbe le
+// loro sessioni sul telefono). UTENTE_A segue Nova Circuit (1) e Lucent Wave
+// (3), UTENTE_B nessuno. UTENTE_ADMIN ha ruolo ADMIN, per i test degli
+// endpoint della coda di revisione Ticketmaster.
 const UTENTE_A = { email: 'test-a@waveset.test', password: 'test-a-waveset' };
 const UTENTE_B = { email: 'test-b@waveset.test', password: 'test-b-waveset' };
+const UTENTE_ADMIN = {
+    email: 'test-admin@waveset.test',
+    password: 'test-admin-waveset',
+};
 
 const deviceUsati = [];
 
@@ -89,6 +94,7 @@ module.exports = {
     db,
     UTENTE_A,
     UTENTE_B,
+    UTENTE_ADMIN,
     nuovoDevice,
     chiama,
     accedi,

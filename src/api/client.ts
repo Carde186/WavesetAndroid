@@ -95,3 +95,14 @@ export function richiediPut<T>(percorso: string, corpo?: unknown): Promise<T> {
 export function richiediDelete<T>(percorso: string): Promise<T> {
     return richiesta<T>(percorso, { method: 'DELETE' });
 }
+
+export function richiediPatch<T>(
+    percorso: string,
+    corpo?: unknown,
+): Promise<T> {
+    return richiesta<T>(percorso, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: corpo === undefined ? undefined : JSON.stringify(corpo),
+    });
+}

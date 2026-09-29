@@ -34,6 +34,29 @@ function ProfiloSchermata({ navigation }: Props) {
                     titolo="Impostazioni"
                     onPress={() => navigation.navigate('Impostazioni')}
                 />
+                {utente.ruolo === 'ADMIN' && (
+                    <>
+                        <RigaElenco
+                            titolo="Coda eventi Ticketmaster"
+                            sottotitolo="Revisione ADMIN"
+                            onPress={() => navigation.navigate('CodaEventi')}
+                        />
+                        <RigaElenco
+                            titolo="Anteprima Spotify"
+                            sottotitolo="Demo ADMIN, sola lettura"
+                            onPress={() =>
+                                navigation.navigate('AnteprimaSpotify')
+                            }
+                        />
+                        <RigaElenco
+                            titolo="Anteprima Deezer"
+                            sottotitolo="Demo ADMIN, sola lettura"
+                            onPress={() =>
+                                navigation.navigate('AnteprimaDeezer')
+                            }
+                        />
+                    </>
+                )}
             </View>
         </View>
     );

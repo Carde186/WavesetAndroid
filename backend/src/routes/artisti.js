@@ -88,6 +88,7 @@ async function dettaglioArtista(req, res) {
          FROM evento e
          INNER JOIN evento_artista ea ON ea.evento_id = e.id
          WHERE ea.artista_id = ? AND e.data_evento >= CURDATE()
+             AND e.stato = 'pubblicato'
          ORDER BY e.data_evento ASC, e.ora_evento ASC`,
         [id],
     );

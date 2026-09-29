@@ -6,6 +6,7 @@ const formattaBrano = require('../utilita/formattaBrano');
 const {
     COLONNE_EVENTO,
     CON_ARTISTA_SEGUITO,
+    SOLO_PUBBLICATI,
     formattaEventi,
 } = require('../utilita/eventi');
 
@@ -43,7 +44,8 @@ async function novita(req, res) {
         const [eventi] = await pool.query(
             `SELECT ${COLONNE_EVENTO}
              FROM evento e
-             WHERE e.data_evento >= CURDATE() AND ${CON_ARTISTA_SEGUITO}
+             WHERE e.data_evento >= CURDATE() AND ${SOLO_PUBBLICATI}
+                 AND ${CON_ARTISTA_SEGUITO}
              ORDER BY e.data_evento, e.ora_evento
              LIMIT ?`,
             [req.utente.id, LIMITE_EVENTI],

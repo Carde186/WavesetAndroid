@@ -127,3 +127,104 @@ export type RisultatiRicerca = {
     artisti: ArtistaSintetico[];
     brani: BranoDettaglio[];
 };
+
+// Coda di revisione Ticketmaster (solo ADMIN). collegamento_da_confermare:
+// l'import ha trovato un candidato Ticketmaster per questo artista, ma
+// nessun ADMIN lo ha ancora confermato esplicitamente — vedi CLAUDE.md,
+// "Integrazione Ticketmaster".
+export type ArtistaLineupCoda = {
+    id: number;
+    nome: string;
+    collegamento_da_confermare: boolean;
+};
+
+export type EventoCoda = {
+    id: number;
+    titolo: string;
+    data_evento: string;
+    ora_evento: string | null;
+    luogo: string | null;
+    citta: string | null;
+    latitudine: number | null;
+    longitudine: number | null;
+    // Uno o più tra: coordinate_irrecuperabili, lineup_ambiguo,
+    // lineup_non_confermato, id_artista_da_confermare, possibile_doppione
+    // — uniti con "; ".
+    motivo_revisione: string | null;
+    lineup: ArtistaLineupCoda[];
+};
+
+// Sottoinsieme di EventoCoda modificabile con la correzione manuale.
+export type CorrezioneEvento = Partial<
+    Pick<
+        EventoCoda,
+        | 'titolo'
+        | 'data_evento'
+        | 'ora_evento'
+        | 'luogo'
+        | 'citta'
+        | 'latitudine'
+        | 'longitudine'
+    >
+>;
+
+// Anteprima Spotify di sola lettura (solo ADMIN, artista/album fissi lato
+// backend — non è il seed del catalogo, vedi CLAUDE.md).
+export type SpotifyArtista = {
+    nome: string;
+    immagine_url: string | null;
+    url_spotify: string | null;
+};
+
+export type SpotifyRelease = {
+    id: string;
+    nome: string;
+    tipo: string;
+    data_pubblicazione: string | null;
+    numero_brani: number;
+    copertina_url: string | null;
+    url_spotify: string | null;
+};
+
+export type SpotifyBrano = {
+    id: string;
+    titolo: string;
+    numero_traccia: number;
+    durata_ms: number;
+    url_spotify: string | null;
+};
+
+export type AnteprimaSpotify = {
+    artista: SpotifyArtista;
+    release: SpotifyRelease[];
+    brani: SpotifyBrano[];
+};
+
+// Anteprima Deezer di sola lettura (solo ADMIN, schermata separata da
+// quella Spotify — vedi CLAUDE.md). album può essere null: "Electronic
+// Generations" è trattato come dato che può mancare, non presunto.
+export type DeezerArtista = {
+    nome: string;
+    foto_url: string | null;
+    url_deezer: string | null;
+};
+
+export type DeezerAlbum = {
+    id: number;
+    titolo: string;
+    copertina_url: string | null;
+    url_deezer: string | null;
+};
+
+export type DeezerBrano = {
+    id: number;
+    titolo: string;
+    durata_secondi: number;
+    url_deezer: string | null;
+};
+
+export type AnteprimaDeezer = {
+    artista: DeezerArtista;
+    album: DeezerAlbum | null;
+    brani: DeezerBrano[];
+};

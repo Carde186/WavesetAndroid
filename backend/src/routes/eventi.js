@@ -5,6 +5,7 @@ const pool = require('../config/database');
 const {
     COLONNE_EVENTO,
     CON_ARTISTA_SEGUITO,
+    SOLO_PUBBLICATI,
     formattaEventi,
 } = require('../utilita/eventi');
 
@@ -32,14 +33,15 @@ async function elencaEventi(req, res) {
             ? await pool.query(
                   `SELECT ${COLONNE_EVENTO}
                    FROM evento e
-                   WHERE e.data_evento >= CURDATE() AND ${CON_ARTISTA_SEGUITO}
+                   WHERE e.data_evento >= CURDATE() AND ${SOLO_PUBBLICATI}
+                       AND ${CON_ARTISTA_SEGUITO}
                    ORDER BY e.data_evento, e.ora_evento`,
                   [req.utente.id],
               )
             : await pool.query(
                   `SELECT ${COLONNE_EVENTO}
                    FROM evento e
-                   WHERE e.data_evento >= CURDATE()
+                   WHERE e.data_evento >= CURDATE() AND ${SOLO_PUBBLICATI}
                    ORDER BY e.data_evento, e.ora_evento`,
               );
 
@@ -48,7 +50,8 @@ async function elencaEventi(req, res) {
 
 async function dettaglioEvento(req, res) {
     const [righe] = await pool.query(
-        `SELECT ${COLONNE_EVENTO} FROM evento e WHERE e.id = ?`,
+        `SELECT ${COLONNE_EVENTO} FROM evento e
+         WHERE e.id = ? AND ${SOLO_PUBBLICATI}`,
         [req.params.id],
     );
 

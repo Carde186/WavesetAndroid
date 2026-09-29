@@ -5,6 +5,12 @@ const pool = require('../config/database');
 const COLONNE_EVENTO = `e.id, e.titolo, e.data_evento, e.ora_evento, e.luogo,
     e.citta, e.latitudine, e.longitudine`;
 
+// Condizione da usare in ogni query pubblica (mai nella coda ADMIN, che deve
+// vedere anche 'in_coda'): un evento importato da Ticketmaster resta
+// invisibile finché l'ADMIN non lo approva. 'manuale' è sempre pubblicato
+// (default della colonna), quindi il catalogo esistente non cambia.
+const SOLO_PUBBLICATI = "e.stato = 'pubblicato'";
+
 // Condizione "ha in lineup almeno un artista seguito dall'utente ?".
 const CON_ARTISTA_SEGUITO = `EXISTS (
     SELECT 1
@@ -68,4 +74,9 @@ async function formattaEventi(righe) {
     }));
 }
 
-module.exports = { COLONNE_EVENTO, CON_ARTISTA_SEGUITO, formattaEventi };
+module.exports = {
+    COLONNE_EVENTO,
+    CON_ARTISTA_SEGUITO,
+    SOLO_PUBBLICATI,
+    formattaEventi,
+};

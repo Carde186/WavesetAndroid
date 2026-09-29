@@ -1,6 +1,8 @@
 -- Dati di prova TEMPORANEI per sviluppare e testare le schermate di catalogo.
--- Verranno sostituiti dal seed reale via Spotify Client Credentials (step
--- "Bottone Spotify + seed catalogo"), non estesi a mano.
+-- Un eventuale catalogo reale sostituirebbe questi dati, ma fonte e
+-- strategia di import/conservazione non sono ancora decise (vedi
+-- CLAUDE.md, "Integrazioni esterne") — non estendere questo seed a mano
+-- nel frattempo.
 
 INSERT INTO genere (nome) VALUES
     ('Techno'),
@@ -10,7 +12,8 @@ INSERT INTO genere (nome) VALUES
 
 -- immagine_url/copertina_url: placeholder stabili (picsum.photos con seed
 -- fisso per entità), solo per avere qualcosa da mostrare nei componenti
--- <Image> prima che arrivi il seed reale da Spotify.
+-- <Image> finché il catalogo reale (fonte e strategia ancora da decidere)
+-- non li sostituisce.
 INSERT INTO artista (nome, bio, immagine_url) VALUES
     ('Nova Circuit', 'Producer italiano di techno minimale, attivo dal 2015 nella scena dei club underground di Torino e Berlino.', 'https://picsum.photos/seed/nova-circuit/400/400'),
     ('Sunset Grid', 'Duo house da Napoli, noto per set melodici pensati per il tramonto.', 'https://picsum.photos/seed/sunset-grid/400/400'),

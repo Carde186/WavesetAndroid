@@ -30,6 +30,16 @@ export type ParametriStackProfilo = {
     // restare raggiungibile anche da anonimo (CLAUDE.md, "Impostazioni" —
     // sezione Aspetto sempre accessibile).
     Impostazioni: undefined;
+    // Solo nel ramo loggato, e solo se utente.ruolo === 'ADMIN' (vedi
+    // ProfiloStack e ProfiloSchermata): coda di revisione Ticketmaster.
+    CodaEventi: undefined;
+    DettaglioEventoCoda: { eventoId: number };
+    // Solo ADMIN: anteprima Spotify di sola lettura, non il seed del
+    // catalogo (vedi CLAUDE.md, "Integrazioni esterne").
+    AnteprimaSpotify: undefined;
+    // Solo ADMIN: anteprima Deezer di sola lettura, schermata separata da
+    // quella Spotify.
+    AnteprimaDeezer: undefined;
 };
 
 export type ParametriTab = {
